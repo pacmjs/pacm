@@ -30,13 +30,14 @@ export async function install(args) {
     packageJson.dependencies = {};
   }
 
-  const spinner = ora('Starting installation').start();
+  const spinner = ora('Installing packages').start();
   const postInstallScripts = [];
   const startTime = Date.now();
 
   try {
     for (const pkg of packages) {
       const [packageName, version] = pkg.split('@');
+      console.log(packageName, version);
       spinner.text = `Parsed package: ${packageName}, version: ${version}`;
 
       if (!packageName) {
@@ -44,7 +45,7 @@ export async function install(args) {
       }
 
       spinner.text = `Installing package: ${packageName}, version: ${version}`;
-      const installedPackage = await installPackage(packageName, version, installDir, version, spinner, postInstallScripts);
+      const installedPackage = await installPackage(spinner, packageName, version, installDir, postInstallScripts);
       spinner.text = `Installed package: ${installedPackage.packageName}, version: ${installedPackage.version}`;
       packageJson.dependencies[installedPackage.packageName] = installedPackage.version;
     }

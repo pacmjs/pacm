@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import semver from 'semver';
 import { fetchPackageMetadata } from '../../utils/fetchPackageMetadata.js';
 import { downloadAndExtractTarball } from '../../utils/downloadAndExtractTarball.js';
+import { homedir } from 'node:os';
 
 const globalCacheDir = join(homedir(), '.pacm-cache');
 
@@ -10,7 +11,7 @@ if (!existsSync(globalCacheDir)) {
   mkdirSync(globalCacheDir);
 }
 
-export async function installPackage(packageName, version, installDir, originalVersion, spinner, postInstallScripts) {
+export async function installPackage(spinner, packageName, version, installDir = process.cwd(), postInstallScripts = [], originalVersion) {
   let metadata;
   let versionToInstall = version;
 
@@ -48,7 +49,7 @@ export async function installPackage(packageName, version, installDir, originalV
   const dependencies = packageJson.dependencies || {};
 
   for (const [depName, depVersion] of Object.entries(dependencies)) {
-    await installPackage(depName, depVersion, installDir, null, spinner, postInstallScripts);
+    await installPackage(spinner, depName, depVersion, installDir, postInstallScripts);
   }
 
   postInstallScripts.push(packageDir);
