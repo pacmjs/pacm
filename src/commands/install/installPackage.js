@@ -1,5 +1,6 @@
+/* eslint-disable no-unused-vars */
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
-import { join, dirname } from 'node:path';
+import { join } from 'node:path';
 import semver from 'semver';
 import { fetchPackageMetadata } from '../../utils/fetchPackageMetadata.js';
 import { downloadAndExtractTarball } from '../../utils/downloadAndExtractTarball.js';
@@ -60,23 +61,22 @@ export async function installPackage(spinner, packageName, version, installDir =
   }
 
   const packageJsonPath = join(packageDir, 'package.json');
-  const maxRetries = 3;
   const retryDelay = 100;
 
-  let packageJsonExists = false;
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
-    if (existsSync(packageJsonPath)) {
-      packageJsonExists = true;
-      break;
-    }
+  while (!existsSync(packageJsonPath)) {
     await new Promise(resolve => setTimeout(resolve, retryDelay));
   }
 
-  if (!packageJsonExists) {
-    throw new Error(`package.json not found in ${packageDir}`);
+  let packageJson;
+  while (true) {
+    try {
+      packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
+      break;
+    } catch (error) {
+      await new Promise(resolve => setTimeout(resolve, retryDelay));
+    }
   }
 
-  const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
   const dependencies = packageJson.dependencies || {};
 
   for (const [depName, depVersion] of Object.entries(dependencies)) {

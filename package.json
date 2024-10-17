@@ -23,7 +23,7 @@
     "prettier": "^3.3.3"
   },
   "dependencies": {
-    "node-fetch": "^3.3.2",
+    "node-fetch": "3.3.2",
     "ora": "^8.1.0",
     "prompts": "^2.4.2",
     "semver": "^7.6.3",
