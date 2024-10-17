@@ -12,6 +12,14 @@ if (!existsSync(globalCacheDir)) {
 }
 
 export async function installPackage(spinner, packageName, version, installDir = process.cwd(), postInstallScripts = [], originalVersion) {
+  if (typeof packageName !== 'string' || typeof version !== 'string') {
+    throw new Error('Invalid packageName or version. Both must be strings.');
+  }
+
+  if (!packageName || !version) {
+    throw new Error('Invalid packageName or version. Both must be defined.');
+  }
+
   let metadata;
   let versionToInstall = version;
 
