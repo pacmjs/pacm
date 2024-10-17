@@ -1,5 +1,5 @@
-import { existsSync, copyFileSync, createWriteStream } from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, copyFileSync, createWriteStream, mkdirSync } from 'node:fs';
+import { join, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
 import fetch from 'node-fetch';
 import { x as extract } from 'tar';
@@ -22,6 +22,10 @@ export async function downloadAndExtractTarball(url, dest, cachePath, spinner) {
         response.body.pipe(fileStream).on('finish', resolve).on('error', reject);
         fileStream.on('finish', () => {
           spinner.text = `Writing cache to ${cachePath}`;
+          const cacheDir = dirname(cachePath);
+          if (!existsSync(cacheDir)) {
+            mkdirSync(cacheDir, { recursive: true });
+          }
           copyFileSync(tempPath, cachePath);
           spinner.text = `Extracting ${tempPath} to ${dest}`;
           extract({ file: tempPath, cwd: dest, strip: 1 }).then(resolve).catch(reject);
