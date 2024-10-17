@@ -1,8 +1,9 @@
-import { existsSync, mkdirSync, writeFileSync, readFileSync } from 'node:fs';
+import { existsSync, writeFileSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import ora from 'ora';
 import { installPackage } from './installPackage.js';
-import { runPostInstallScript } from '../utils/runPostInstallScript.js';
+import { runPostInstallScript } from '../../utils/runPostInstallScript.js';
+import process from 'node:process';
 
 export async function install(args) {
   const packages = [];
@@ -36,8 +37,12 @@ export async function install(args) {
 
   try {
     for (const pkg of packages) {
-      const [packageName, version] = pkg.split('@');
-      console.log(packageName, version);
+      let [packageName, version] = pkg.split('@');
+
+      if (version === undefined || version === '' || version === 'latest' || version === null) {
+        version = 'latest';
+      }
+
       spinner.text = `Parsed package: ${packageName}, version: ${version}`;
 
       if (!packageName) {

@@ -20,14 +20,14 @@ export async function downloadAndExtractTarball(url, dest, cachePath, spinner) {
       const fileStream = createWriteStream(tempPath);
       await new Promise((resolve, reject) => {
         response.body.pipe(fileStream).on('finish', resolve).on('error', reject);
+        fileStream.on('finish', () => {
+          spinner.text = `Writing cache to ${cachePath}`;
+          copyFileSync(tempPath, cachePath);
+          spinner.text = `Extracting ${tempPath} to ${dest}`;
+          extract({ file: tempPath, cwd: dest, strip: 1 }).then(resolve).catch(reject);
+        });
+        fileStream.on('error', reject);
       });
-      fileStream.on('finish', () => {
-        spinner.text = `Writing cache to ${cachePath}`;
-        copyFileSync(tempPath, cachePath);
-        spinner.text = `Extracting ${tempPath} to ${dest}`;
-        extract({ file: tempPath, cwd: dest, strip: 1 }).then(resolve).catch(reject);
-      });
-      fileStream.on('error', reject);
     }, url, dest);
   }
 }

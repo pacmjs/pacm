@@ -4,6 +4,7 @@ import semver from 'semver';
 import { fetchPackageMetadata } from '../../utils/fetchPackageMetadata.js';
 import { downloadAndExtractTarball } from '../../utils/downloadAndExtractTarball.js';
 import { homedir } from 'node:os';
+import process from 'node:process';
 
 const globalCacheDir = join(homedir(), '.pacm-cache');
 
@@ -11,13 +12,13 @@ if (!existsSync(globalCacheDir)) {
   mkdirSync(globalCacheDir);
 }
 
-export async function installPackage(spinner, packageName, version, installDir = process.cwd(), postInstallScripts = [], originalVersion) {
+export async function installPackage(spinner, packageName, version, installDir = process.cwd(), postInstallScripts = []) {
   if (typeof packageName !== 'string' || typeof version !== 'string') {
-    throw new Error('Invalid packageName or version. Both must be strings.');
+    throw new Error('[ERRNO1] Invalid packageName or version. Both must be strings.');
   }
 
   if (!packageName || !version) {
-    throw new Error('Invalid packageName or version. Both must be defined.');
+    throw new Error('[ERRNO2] Invalid packageName or version. Both must be defined.');
   }
 
   let metadata;
@@ -36,10 +37,16 @@ export async function installPackage(spinner, packageName, version, installDir =
 
   spinner.text = `Validating version for ${packageName}`;
   const availableVersions = Object.keys(metadata.versions);
-  const maxSatisfyingVersion = semver.maxSatisfying(availableVersions, versionToInstall);
+  let maxSatisfyingVersion;
 
-  if (!maxSatisfyingVersion) {
-    throw new Error(`Version ${versionToInstall} of package ${packageName} not found`);
+  if (versionToInstall !== "latest") {
+    maxSatisfyingVersion = semver.maxSatisfying(availableVersions, versionToInstall);
+  
+    if (!maxSatisfyingVersion) {
+      throw new Error(`Version ${versionToInstall} of package ${packageName} not found`);
+    }
+  } else {
+    maxSatisfyingVersion = metadata['dist-tags'].latest;
   }
 
   const packageVersion = metadata.versions[maxSatisfyingVersion];
@@ -53,6 +60,22 @@ export async function installPackage(spinner, packageName, version, installDir =
   }
 
   const packageJsonPath = join(packageDir, 'package.json');
+  const maxRetries = 3;
+  const retryDelay = 100;
+
+  let packageJsonExists = false;
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    if (existsSync(packageJsonPath)) {
+      packageJsonExists = true;
+      break;
+    }
+    await new Promise(resolve => setTimeout(resolve, retryDelay));
+  }
+
+  if (!packageJsonExists) {
+    throw new Error(`package.json not found in ${packageDir}`);
+  }
+
   const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
   const dependencies = packageJson.dependencies || {};
 
@@ -62,5 +85,5 @@ export async function installPackage(spinner, packageName, version, installDir =
 
   postInstallScripts.push(packageDir);
 
-  return { packageName, version: originalVersion || versionToInstall };
+  return { packageName, version: maxSatisfyingVersion };
 }
