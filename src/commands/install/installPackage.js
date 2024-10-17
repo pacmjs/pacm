@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, dirname } from 'node:path';
 import semver from 'semver';
 import { fetchPackageMetadata } from '../../utils/fetchPackageMetadata.js';
 import { downloadAndExtractTarball } from '../../utils/downloadAndExtractTarball.js';
@@ -52,7 +52,7 @@ export async function installPackage(spinner, packageName, version, installDir =
   const packageVersion = metadata.versions[maxSatisfyingVersion];
   const tarballUrl = packageVersion.dist.tarball;
   const packageDir = join(installDir, 'node_modules', packageName);
-  const cachePath = join(globalCacheDir, `${packageName}-${maxSatisfyingVersion}.tgz`);
+  const cachePath = join(globalCacheDir, packageName.startsWith('@') ? packageName.replace('/', '_') : packageName, `${maxSatisfyingVersion}.tgz`);
 
   if (!existsSync(packageDir)) {
     mkdirSync(packageDir, { recursive: true });
