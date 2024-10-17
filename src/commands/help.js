@@ -1,4 +1,4 @@
-export default function displayHelp() {
+function displayHelp() {
     console.log(`
       Usage: pacm [command]
   
@@ -7,3 +7,7 @@ export default function displayHelp() {
         version   Show the version of pacm
     `);
 }
+
+export default function help() {
+    displayHelp();
+};

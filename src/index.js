@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 
-import { exec } from 'node:child_process';
-import { argv } from 'node:process';
-import { help, version } from '../core/commands'
+// Import required modules
+import { exec } from 'child_process';
+import { argv } from 'process';
+import { help, version } from './commands/index.js';
 
 function main() {
   const command = argv[2];
