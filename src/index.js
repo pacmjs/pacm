@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { argv } from 'process';
 import { help, version } from './commands/index.js';
-import { install } from './commands/install.js';
+import { install } from './commands/index.js';
 
 function main() {
   const command = argv[2];
