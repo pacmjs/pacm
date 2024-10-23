@@ -22,16 +22,20 @@ export async function install(args) {
   const packageJsonPath = join(installDir, 'package.json');
   const lockFilePath = join(installDir, 'pacm.lockp');
   let packageJson = {};
-  let lockFileData = { dependencies: {} };
+  let lockFileData = { dependencies: {}, devDependencies: {} };
 
   if (existsSync(packageJsonPath)) {
     packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
   } else {
-    packageJson = { dependencies: {} };
+    packageJson = { dependencies: {}, devDependencies: {} };
   }
 
   if (!packageJson.dependencies) {
     packageJson.dependencies = {};
+  }
+
+  if (!packageJson.devDependencies) {
+    packageJson.devDependencies = {};
   }
 
   if (existsSync(lockFilePath)) {
@@ -46,10 +50,14 @@ export async function install(args) {
     if (packages.length === 0) {
       if (existsSync(lockFilePath)) {
         packages.push(...Object.keys(lockFileData.dependencies));
+        packages.push(...Object.keys(lockFileData.devDependencies));
       } else if (existsSync(packageJsonPath)) {
         packages.push(...Object.keys(packageJson.dependencies));
+        packages.push(...Object.keys(packageJson.devDependencies));
       }
     }
+
+    const isDevDependency = flags.includes('--save-dev') || flags.includes('-D');
 
     for (const pkg of packages) {
       let [packageName, version] = pkg.split('@');
@@ -65,17 +73,26 @@ export async function install(args) {
       }
 
       spinner.text = `Installing package: ${packageName}, version: ${version}`;
-      const installedPackage = await installPackage(spinner, packageName, version, installDir, postInstallScripts);
+      const installedPackage = await installPackage(spinner, packageName, version, installDir, postInstallScripts, lockFileData, isDevDependency);
       spinner.text = `Installed package: ${installedPackage.packageName}, version: ${installedPackage.version}`;
-      packageJson.dependencies[installedPackage.packageName] = installedPackage.version;
 
-      // Add package information to lock file data
-      lockFileData.dependencies[installedPackage.packageName] = {
-        version: installedPackage.version,
-        resolved: installedPackage.resolved,
-        integrity: installedPackage.integrity,
-        dependencies: installedPackage.dependencies
-      };
+      if (isDevDependency) {
+        packageJson.devDependencies[installedPackage.packageName] = installedPackage.version;
+        lockFileData.devDependencies[installedPackage.packageName] = {
+          version: installedPackage.version,
+          resolved: installedPackage.resolved,
+          integrity: installedPackage.integrity,
+          dependencies: installedPackage.dependencies
+        };
+      } else {
+        packageJson.dependencies[installedPackage.packageName] = installedPackage.version;
+        lockFileData.dependencies[installedPackage.packageName] = {
+          version: installedPackage.version,
+          resolved: installedPackage.resolved,
+          integrity: installedPackage.integrity,
+          dependencies: installedPackage.dependencies
+        };
+      }
     }
 
     spinner.text = 'Writing package.json';
