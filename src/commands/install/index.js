@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import ora from 'ora';
 import { installPackage } from './installPackage.js';
 import { runPostInstallScript } from '../../utils/runPostInstallScript.js';
+import { createLockFile } from '../../utils/createLockFile.js';
 import process from 'node:process';
 
 export async function install(args) {
@@ -34,6 +35,9 @@ export async function install(args) {
   const spinner = ora('Installing packages').start();
   const postInstallScripts = [];
   const startTime = Date.now();
+  const lockFileData = {
+    dependencies: {}
+  };
 
   try {
     for (const pkg of packages) {
@@ -53,6 +57,14 @@ export async function install(args) {
       const installedPackage = await installPackage(spinner, packageName, version, installDir, postInstallScripts);
       spinner.text = `Installed package: ${installedPackage.packageName}, version: ${installedPackage.version}`;
       packageJson.dependencies[installedPackage.packageName] = installedPackage.version;
+
+      // Add package information to lock file data
+      lockFileData.dependencies[installedPackage.packageName] = {
+        version: installedPackage.version,
+        resolved: installedPackage.resolved,
+        integrity: installedPackage.integrity,
+        dependencies: installedPackage.dependencies
+      };
     }
 
     spinner.text = 'Writing package.json';
@@ -63,6 +75,10 @@ export async function install(args) {
     }
 
     await runPostInstallScript(installDir, spinner);
+
+    // Create and write the lock file
+    const lockFilePath = join(installDir, 'pacm.lockp');
+    createLockFile(lockFileData, lockFilePath);
 
     const endTime = Date.now();
     const duration = endTime - startTime;
