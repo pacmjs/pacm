@@ -240,4 +240,47 @@ describe('install', () => {
       true
     );
   });
+
+  it('should save packages as devDependencies when --save-dev flag is used', async () => {
+    const packageJsonData = {
+      dependencies: {},
+      devDependencies: {}
+    };
+
+    writeFileSync(packageJsonPath, JSON.stringify(packageJsonData, null, 2));
+
+    await install(['axios@1.7.7', '--save-dev']);
+
+    const updatedPackageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
+    expect(updatedPackageJson.devDependencies).toHaveProperty('axios', '1.7.7');
+  });
+
+  it('should save packages as devDependencies when -D flag is used', async () => {
+    const packageJsonData = {
+      dependencies: {},
+      devDependencies: {}
+    };
+
+    writeFileSync(packageJsonPath, JSON.stringify(packageJsonData, null, 2));
+
+    await install(['axios@1.7.7', '-D']);
+
+    const updatedPackageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
+    expect(updatedPackageJson.devDependencies).toHaveProperty('axios', '1.7.7');
+  });
+
+  it('should force overwrite existing packages when --force flag is used', async () => {
+    const packageJsonData = {
+      dependencies: {
+        'axios': '1.7.6'
+      }
+    };
+
+    writeFileSync(packageJsonPath, JSON.stringify(packageJsonData, null, 2));
+
+    await install(['axios@1.7.7', '--force']);
+
+    const updatedPackageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
+    expect(updatedPackageJson.dependencies).toHaveProperty('axios', '1.7.7');
+  });
 });

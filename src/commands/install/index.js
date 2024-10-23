@@ -104,7 +104,6 @@ export async function install(args) {
 
     await runPostInstallScript(installDir, spinner);
 
-    // Create and write the lock file
     createLockFile(lockFileData, lockFilePath);
 
     const endTime = Date.now();
