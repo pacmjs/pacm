@@ -59,6 +59,9 @@ export async function install(args) {
 
     const isDevDependency = flags.includes('--save-dev') || flags.includes('-D');
 
+    const totalPackages = packages.length;
+    let currentPackageIndex = 0;
+
     for (const pkg of packages) {
       let packageName, version;
 
@@ -82,9 +85,10 @@ export async function install(args) {
         throw new Error(`Invalid package name: ${pkg}`);
       }
 
-      spinner.text = `Installing package: ${packageName}, version: ${version}`;
-      const installedPackage = await installPackage(spinner, packageName, version, installDir, postInstallScripts, lockFileData, isDevDependency);
-      spinner.text = `Installed package: ${installedPackage.packageName}, version: ${installedPackage.version}`;
+      currentPackageIndex++;
+      spinner.text = `[${currentPackageIndex}/${totalPackages}] Installing package: ${packageName}, version: ${version}`;
+      const installedPackage = await installPackage(spinner, packageName, version, installDir, postInstallScripts, lockFileData, isDevDependency, currentPackageIndex, totalPackages);
+      spinner.text = `[${currentPackageIndex}/${totalPackages}] Installed package: ${installedPackage.packageName}, version: ${installedPackage.version}`;
 
       if (isDevDependency) {
         packageJson.devDependencies[installedPackage.packageName] = installedPackage.version;
