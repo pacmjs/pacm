@@ -19,6 +19,7 @@ function main() {
       break;
     default:
       console.log('Unknown command. Use "pacm help" for a list of commands.');
+      break;
   }
 }
 
