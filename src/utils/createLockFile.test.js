@@ -34,6 +34,21 @@ describe('createLockFile', () => {
           resolved: 'https://registry.npmjs.org/package-b/-/package-b-2.0.0.tgz',
           integrity: 'sha512-def456'
         }
+      },
+      devDependencies: {
+        'package-c': {
+          version: '3.0.0',
+          resolved: 'https://registry.npmjs.org/package-c/-/package-c-3.0.0.tgz',
+          integrity: 'sha512-ghi789',
+          dependencies: {
+            'package-d': '^4.0.0'
+          }
+        },
+        'package-d': {
+          version: '4.0.0',
+          resolved: 'https://registry.npmjs.org/package-d/-/package-d-4.0.0.tgz',
+          integrity: 'sha512-jkl012'
+        }
       }
     };
 
@@ -51,6 +66,13 @@ describe('createLockFile', () => {
           resolved: 'https://registry.npmjs.org/package-a/-/package-a-1.0.0.tgz',
           integrity: 'sha512-abc123'
         }
+      },
+      devDependencies: {
+        'package-c': {
+          version: '3.0.0',
+          resolved: 'https://registry.npmjs.org/package-c/-/package-c-3.0.0.tgz',
+          integrity: 'sha512-ghi789'
+        }
       }
     };
 
@@ -60,6 +82,13 @@ describe('createLockFile', () => {
           version: '2.0.0',
           resolved: 'https://registry.npmjs.org/package-b/-/package-b-2.0.0.tgz',
           integrity: 'sha512-def456'
+        }
+      },
+      devDependencies: {
+        'package-d': {
+          version: '4.0.0',
+          resolved: 'https://registry.npmjs.org/package-d/-/package-d-4.0.0.tgz',
+          integrity: 'sha512-jkl012'
         }
       }
     };

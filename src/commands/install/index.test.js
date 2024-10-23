@@ -9,7 +9,7 @@ const packageJsonPath = join(installDir, 'package.json');
 const lockFilePath = join(installDir, 'pacm.lockp');
 
 jest.mock('./installPackage.js', () => ({
-  installPackage: jest.fn(async (spinner, packageName, version, installDir, postInstallScripts) => ({
+  installPackage: jest.fn(async (spinner, packageName, version, installDir, postInstallScripts, lockFileData, isDevDependency) => ({
     packageName,
     version,
     resolved: `https://registry.npmjs.org/${packageName}/-/${packageName}-${version}.tgz`,
@@ -49,49 +49,12 @@ describe('install', () => {
           resolved: 'https://registry.npmjs.org/axios/-/axios-1.7.7.tgz',
           integrity: 'sha512-abc123'
         }
-      }
-    };
-
-    createLockFile(lockFileData, lockFilePath);
-
-    await install([]);
-
-    expect(require('./installPackage.js').installPackage).toHaveBeenCalledWith(
-      expect.anything(),
-      'axios',
-      '1.7.7',
-      installDir,
-      expect.any(Array)
-    );
-  });
-
-  it('should install packages from package.json if pacm.lockp does not exist', async () => {
-    const packageJsonData = {
-      dependencies: {
-        'axios': '1.7.7'
-      }
-    };
-
-    writeFileSync(packageJsonPath, JSON.stringify(packageJsonData, null, 2));
-
-    await install([]);
-
-    expect(require('./installPackage.js').installPackage).toHaveBeenCalledWith(
-      expect.anything(),
-      'axios',
-      '1.7.7',
-      installDir,
-      expect.any(Array)
-    );
-  });
-
-  it('should install packages from pacm.lockp or package.json if no packages are specified in the command arguments', async () => {
-    const lockFileData = {
-      dependencies: {
-        'axios': {
-          version: '1.7.7',
-          resolved: 'https://registry.npmjs.org/axios/-/axios-1.7.7.tgz',
-          integrity: 'sha512-abc123'
+      },
+      devDependencies: {
+        'jest': {
+          version: '29.7.0',
+          resolved: 'https://registry.npmjs.org/jest/-/jest-29.7.0.tgz',
+          integrity: 'sha512-def456'
         }
       }
     };
@@ -105,14 +68,29 @@ describe('install', () => {
       'axios',
       '1.7.7',
       installDir,
-      expect.any(Array)
+      expect.any(Array),
+      lockFileData,
+      false
     );
 
-    unlinkSync(lockFilePath);
+    expect(require('./installPackage.js').installPackage).toHaveBeenCalledWith(
+      expect.anything(),
+      'jest',
+      '29.7.0',
+      installDir,
+      expect.any(Array),
+      lockFileData,
+      true
+    );
+  });
 
+  it('should install packages from package.json if pacm.lockp does not exist', async () => {
     const packageJsonData = {
       dependencies: {
         'axios': '1.7.7'
+      },
+      devDependencies: {
+        'jest': '29.7.0'
       }
     };
 
@@ -125,7 +103,141 @@ describe('install', () => {
       'axios',
       '1.7.7',
       installDir,
-      expect.any(Array)
+      expect.any(Array),
+      expect.any(Object),
+      false
+    );
+
+    expect(require('./installPackage.js').installPackage).toHaveBeenCalledWith(
+      expect.anything(),
+      'jest',
+      '29.7.0',
+      installDir,
+      expect.any(Array),
+      expect.any(Object),
+      true
+    );
+  });
+
+  it('should install packages from pacm.lockp or package.json if no packages are specified in the command arguments', async () => {
+    const lockFileData = {
+      dependencies: {
+        'axios': {
+          version: '1.7.7',
+          resolved: 'https://registry.npmjs.org/axios/-/axios-1.7.7.tgz',
+          integrity: 'sha512-abc123'
+        }
+      },
+      devDependencies: {
+        'jest': {
+          version: '29.7.0',
+          resolved: 'https://registry.npmjs.org/jest/-/jest-29.7.0.tgz',
+          integrity: 'sha512-def456'
+        }
+      }
+    };
+
+    createLockFile(lockFileData, lockFilePath);
+
+    await install([]);
+
+    expect(require('./installPackage.js').installPackage).toHaveBeenCalledWith(
+      expect.anything(),
+      'axios',
+      '1.7.7',
+      installDir,
+      expect.any(Array),
+      lockFileData,
+      false
+    );
+
+    expect(require('./installPackage.js').installPackage).toHaveBeenCalledWith(
+      expect.anything(),
+      'jest',
+      '29.7.0',
+      installDir,
+      expect.any(Array),
+      lockFileData,
+      true
+    );
+
+    unlinkSync(lockFilePath);
+
+    const packageJsonData = {
+      dependencies: {
+        'axios': '1.7.7'
+      },
+      devDependencies: {
+        'jest': '29.7.0'
+      }
+    };
+
+    writeFileSync(packageJsonPath, JSON.stringify(packageJsonData, null, 2));
+
+    await install([]);
+
+    expect(require('./installPackage.js').installPackage).toHaveBeenCalledWith(
+      expect.anything(),
+      'axios',
+      '1.7.7',
+      installDir,
+      expect.any(Array),
+      expect.any(Object),
+      false
+    );
+
+    expect(require('./installPackage.js').installPackage).toHaveBeenCalledWith(
+      expect.anything(),
+      'jest',
+      '29.7.0',
+      installDir,
+      expect.any(Array),
+      expect.any(Object),
+      true
+    );
+  });
+
+  it('should install devDependencies with --save-dev flag', async () => {
+    const packageJsonData = {
+      devDependencies: {
+        'jest': '29.7.0'
+      }
+    };
+
+    writeFileSync(packageJsonPath, JSON.stringify(packageJsonData, null, 2));
+
+    await install(['--save-dev']);
+
+    expect(require('./installPackage.js').installPackage).toHaveBeenCalledWith(
+      expect.anything(),
+      'jest',
+      '29.7.0',
+      installDir,
+      expect.any(Array),
+      expect.any(Object),
+      true
+    );
+  });
+
+  it('should install devDependencies with -D flag', async () => {
+    const packageJsonData = {
+      devDependencies: {
+        'jest': '29.7.0'
+      }
+    };
+
+    writeFileSync(packageJsonPath, JSON.stringify(packageJsonData, null, 2));
+
+    await install(['-D']);
+
+    expect(require('./installPackage.js').installPackage).toHaveBeenCalledWith(
+      expect.anything(),
+      'jest',
+      '29.7.0',
+      installDir,
+      expect.any(Array),
+      expect.any(Object),
+      true
     );
   });
 
