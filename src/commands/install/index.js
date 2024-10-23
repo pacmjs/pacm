@@ -77,21 +77,25 @@ export async function install(args) {
       spinner.text = `Installed package: ${installedPackage.packageName}, version: ${installedPackage.version}`;
 
       if (isDevDependency) {
-        packageJson.devDependencies[installedPackage.packageName] = installedPackage.version;
-        lockFileData.devDependencies[installedPackage.packageName] = {
-          version: installedPackage.version,
-          resolved: installedPackage.resolved,
-          integrity: installedPackage.integrity,
-          dependencies: installedPackage.dependencies
-        };
+        if (!packageJson.dependencies[installedPackage.packageName] && !packageJson.devDependencies[installedPackage.packageName]) {
+          packageJson.devDependencies[installedPackage.packageName] = installedPackage.version;
+          lockFileData.devDependencies[installedPackage.packageName] = {
+            version: installedPackage.version,
+            resolved: installedPackage.resolved,
+            integrity: installedPackage.integrity,
+            dependencies: installedPackage.dependencies
+          };
+        }
       } else {
-        packageJson.dependencies[installedPackage.packageName] = installedPackage.version;
-        lockFileData.dependencies[installedPackage.packageName] = {
-          version: installedPackage.version,
-          resolved: installedPackage.resolved,
-          integrity: installedPackage.integrity,
-          dependencies: installedPackage.dependencies
-        };
+        if (!packageJson.dependencies[installedPackage.packageName] && !packageJson.devDependencies[installedPackage.packageName]) {
+          packageJson.dependencies[installedPackage.packageName] = installedPackage.version;
+          lockFileData.dependencies[installedPackage.packageName] = {
+            version: installedPackage.version,
+            resolved: installedPackage.resolved,
+            integrity: installedPackage.integrity,
+            dependencies: installedPackage.dependencies
+          };
+        }
       }
     }
 
