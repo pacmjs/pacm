@@ -13,7 +13,7 @@ if (!existsSync(globalCacheDir)) {
   mkdirSync(globalCacheDir);
 }
 
-export async function installPackage(spinner, packageName, version, installDir = process.cwd(), postInstallScripts = []) {
+export async function installPackage(spinner, packageName, version, installDir = process.cwd(), postInstallScripts = [], lockFileData = { dependencies: {} }) {
   if (typeof packageName !== 'string' || typeof version !== 'string') {
     throw new Error('[ERRNO1] Invalid packageName or version. Both must be strings.');
   }
@@ -80,10 +80,18 @@ export async function installPackage(spinner, packageName, version, installDir =
   const dependencies = packageJson.dependencies || {};
 
   for (const [depName, depVersion] of Object.entries(dependencies)) {
-    await installPackage(spinner, depName, depVersion, installDir, postInstallScripts);
+    await installPackage(spinner, depName, depVersion, installDir, postInstallScripts, lockFileData);
   }
 
   postInstallScripts.push(packageDir);
 
-  return { packageName, version: maxSatisfyingVersion };
+  // Add package information to lock file data
+  lockFileData.dependencies[packageName] = {
+    version: maxSatisfyingVersion,
+    resolved: tarballUrl,
+    integrity: packageVersion.dist.integrity,
+    dependencies: Object.keys(dependencies).length > 0 ? dependencies : undefined
+  };
+
+  return { packageName, version: maxSatisfyingVersion, resolved: tarballUrl, integrity: packageVersion.dist.integrity, dependencies };
 }
