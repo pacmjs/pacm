@@ -20,7 +20,9 @@ export async function install(args) {
 
   const installDir = process.cwd();
   const packageJsonPath = join(installDir, 'package.json');
+  const lockFilePath = join(installDir, 'pacm.lockp');
   let packageJson = {};
+  let lockFileData = { dependencies: {} };
 
   if (existsSync(packageJsonPath)) {
     packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
@@ -32,14 +34,23 @@ export async function install(args) {
     packageJson.dependencies = {};
   }
 
+  if (existsSync(lockFilePath)) {
+    lockFileData = JSON.parse(readFileSync(lockFilePath, 'utf-8'));
+  }
+
   const spinner = ora('Installing packages').start();
   const postInstallScripts = [];
   const startTime = Date.now();
-  const lockFileData = {
-    dependencies: {}
-  };
 
   try {
+    if (packages.length === 0) {
+      if (existsSync(lockFilePath)) {
+        packages.push(...Object.keys(lockFileData.dependencies));
+      } else if (existsSync(packageJsonPath)) {
+        packages.push(...Object.keys(packageJson.dependencies));
+      }
+    }
+
     for (const pkg of packages) {
       let [packageName, version] = pkg.split('@');
 
@@ -77,7 +88,6 @@ export async function install(args) {
     await runPostInstallScript(installDir, spinner);
 
     // Create and write the lock file
-    const lockFilePath = join(installDir, 'pacm.lockp');
     createLockFile(lockFileData, lockFilePath);
 
     const endTime = Date.now();
