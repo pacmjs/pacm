@@ -60,10 +60,20 @@ export async function install(args) {
     const isDevDependency = flags.includes('--save-dev') || flags.includes('-D');
 
     for (const pkg of packages) {
-      let [packageName, version] = pkg.split('@');
+      let packageName, version;
 
-      if (version === undefined || version === '' || version === 'latest' || version === null) {
-        version = 'latest';
+      if (pkg.startsWith('@')) {
+        const atIndex = pkg.indexOf('@', 1);
+        if (atIndex === -1) {
+          packageName = pkg;
+          version = 'latest';
+        } else {
+          packageName = pkg.substring(0, atIndex);
+          version = pkg.substring(atIndex + 1) || 'latest';
+        }
+      } else {
+        [packageName, version] = pkg.split('@');
+        version = version || 'latest';
       }
 
       spinner.text = `Parsed package: ${packageName}, version: ${version}`;
@@ -77,25 +87,21 @@ export async function install(args) {
       spinner.text = `Installed package: ${installedPackage.packageName}, version: ${installedPackage.version}`;
 
       if (isDevDependency) {
-        if (!packageJson.dependencies[installedPackage.packageName] && !packageJson.devDependencies[installedPackage.packageName]) {
-          packageJson.devDependencies[installedPackage.packageName] = installedPackage.version;
-          lockFileData.devDependencies[installedPackage.packageName] = {
-            version: installedPackage.version,
-            resolved: installedPackage.resolved,
-            integrity: installedPackage.integrity,
-            dependencies: installedPackage.dependencies
-          };
-        }
+        packageJson.devDependencies[installedPackage.packageName] = installedPackage.version;
+        lockFileData.devDependencies[installedPackage.packageName] = {
+          version: installedPackage.version,
+          resolved: installedPackage.resolved,
+          integrity: installedPackage.integrity,
+          dependencies: installedPackage.dependencies
+        };
       } else {
-        if (!packageJson.dependencies[installedPackage.packageName] && !packageJson.devDependencies[installedPackage.packageName]) {
-          packageJson.dependencies[installedPackage.packageName] = installedPackage.version;
-          lockFileData.dependencies[installedPackage.packageName] = {
-            version: installedPackage.version,
-            resolved: installedPackage.resolved,
-            integrity: installedPackage.integrity,
-            dependencies: installedPackage.dependencies
-          };
-        }
+        packageJson.dependencies[installedPackage.packageName] = installedPackage.version;
+        lockFileData.dependencies[installedPackage.packageName] = {
+          version: installedPackage.version,
+          resolved: installedPackage.resolved,
+          integrity: installedPackage.integrity,
+          dependencies: installedPackage.dependencies
+        };
       }
     }
 

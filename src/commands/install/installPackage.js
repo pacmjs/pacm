@@ -80,31 +80,25 @@ export async function installPackage(spinner, packageName, version, installDir =
   const dependencies = packageJson.dependencies || {};
 
   for (const [depName, depVersion] of Object.entries(dependencies)) {
-    if (!lockFileData.dependencies[depName] && !lockFileData.devDependencies[depName]) {
-      await installPackage(spinner, depName, depVersion, installDir, postInstallScripts, lockFileData, isDevDependency);
-    }
+    await installPackage(spinner, depName, depVersion, installDir, postInstallScripts, lockFileData, isDevDependency);
   }
 
   postInstallScripts.push(packageDir);
 
   if (isDevDependency) {
-    if (!lockFileData.dependencies[packageName] && !lockFileData.devDependencies[packageName]) {
-      lockFileData.devDependencies[packageName] = {
-        version: maxSatisfyingVersion,
-        resolved: tarballUrl,
-        integrity: packageVersion.dist.integrity,
-        dependencies: Object.keys(dependencies).length > 0 ? dependencies : undefined
-      };
-    }
+    lockFileData.devDependencies[packageName] = {
+      version: maxSatisfyingVersion,
+      resolved: tarballUrl,
+      integrity: packageVersion.dist.integrity,
+      dependencies: Object.keys(dependencies).length > 0 ? dependencies : undefined
+    };
   } else {
-    if (!lockFileData.dependencies[packageName] && !lockFileData.devDependencies[packageName]) {
-      lockFileData.dependencies[packageName] = {
-        version: maxSatisfyingVersion,
-        resolved: tarballUrl,
-        integrity: packageVersion.dist.integrity,
-        dependencies: Object.keys(dependencies).length > 0 ? dependencies : undefined
-      };
-    }
+    lockFileData.dependencies[packageName] = {
+      version: maxSatisfyingVersion,
+      resolved: tarballUrl,
+      integrity: packageVersion.dist.integrity,
+      dependencies: Object.keys(dependencies).length > 0 ? dependencies : undefined
+    };
   }
 
   return { packageName, version: maxSatisfyingVersion, resolved: tarballUrl, integrity: packageVersion.dist.integrity, dependencies };
