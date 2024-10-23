@@ -85,7 +85,6 @@ export async function installPackage(spinner, packageName, version, installDir =
 
   postInstallScripts.push(packageDir);
 
-  // Add package information to lock file data
   if (isDevDependency) {
     lockFileData.devDependencies[packageName] = {
       version: maxSatisfyingVersion,
