@@ -1,5 +1,5 @@
 function displayHelp() {
-    console.log(`
+  console.log(`
       Usage: pacm [command]
   
       Commands:
@@ -9,5 +9,5 @@ function displayHelp() {
 }
 
 export default function help() {
-    displayHelp();
-};
+  displayHelp();
+}

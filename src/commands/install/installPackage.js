@@ -1,86 +1,139 @@
 /* eslint-disable no-unused-vars */
-import { existsSync, mkdirSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
-import semver from 'semver';
-import { fetchPackageMetadata } from '../../utils/fetchPackageMetadata.js';
-import { downloadAndExtractTarball } from '../../utils/downloadAndExtractTarball.js';
-import { homedir } from 'node:os';
-import process from 'node:process';
+import { existsSync, mkdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import semver from "semver";
+import { fetchPackageMetadata } from "../../utils/fetchPackageMetadata.js";
+import { downloadAndExtractTarball } from "../../utils/downloadAndExtractTarball.js";
+import { homedir } from "node:os";
+import process from "node:process";
 
-const globalCacheDir = join(homedir(), '.pacm-cache');
+const globalCacheDir = join(homedir(), ".pacm-cache");
 
 if (!existsSync(globalCacheDir)) {
   mkdirSync(globalCacheDir);
 }
 
-export async function installPackage(spinner, packageName, version, installDir = process.cwd(), postInstallScripts = [], lockFileData = { dependencies: {}, devDependencies: {} }, isDevDependency = false, currentPackageIndex = 0, totalPackages = 0) {
-  if (typeof packageName !== 'string' || typeof version !== 'string') {
-    throw new Error('[ERRNO1] Invalid packageName or version. Both must be strings.');
+export async function installPackage(
+  spinner,
+  packageName,
+  version,
+  installDir = process.cwd(),
+  postInstallScripts = [],
+  lockFileData = { dependencies: {}, devDependencies: {} },
+  isDevDependency = false,
+  currentPackageIndex = 0,
+  totalPackages = 0,
+) {
+  if (typeof packageName !== "string" || typeof version !== "string") {
+    throw new Error(
+      "[ERRNO1] Invalid packageName or version. Both must be strings.",
+    );
   }
 
   if (!packageName || !version) {
-    throw new Error('[ERRNO2] Invalid packageName or version. Both must be defined.');
+    throw new Error(
+      "[ERRNO2] Invalid packageName or version. Both must be defined.",
+    );
   }
 
   let metadata;
   let versionToInstall = version;
 
-  if (version && version.startsWith('npm:')) {
-    const [npmPackage, npmVersion] = version.slice(4).split('@');
-    metadata = await fetchPackageMetadata(npmPackage, spinner);
-    versionToInstall = npmVersion || metadata['dist-tags'].latest;
-  } else if (version && version.startsWith('github:')) {
-    throw new Error('GitHub packages are not supported yet');
+  if (version && version.startsWith("npm:")) {
+    const [npmPackage, npmVersion] = version.slice(4).split("@");
+    metadata = await fetchPackageMetadata(
+      npmPackage,
+      spinner,
+      currentPackageIndex,
+      totalPackages,
+    );
+    versionToInstall = npmVersion || metadata["dist-tags"].latest;
+  } else if (version && version.startsWith("github:")) {
+    throw new Error("GitHub packages are not supported yet");
   } else {
-    metadata = await fetchPackageMetadata(packageName, spinner);
-    versionToInstall = version || metadata['dist-tags'].latest;
+    metadata = await fetchPackageMetadata(
+      packageName,
+      spinner,
+      currentPackageIndex,
+      totalPackages,
+    );
+    versionToInstall = version || metadata["dist-tags"].latest;
   }
 
-  spinner.text = `Validating version for ${packageName}`;
+  spinner.text = `[${currentPackageIndex}/${totalPackages}] Validating version for ${packageName}`;
   const availableVersions = Object.keys(metadata.versions);
   let maxSatisfyingVersion;
 
   if (versionToInstall !== "latest") {
-    maxSatisfyingVersion = semver.maxSatisfying(availableVersions, versionToInstall);
-  
+    maxSatisfyingVersion = semver.maxSatisfying(
+      availableVersions,
+      versionToInstall,
+    );
+
     if (!maxSatisfyingVersion) {
-      throw new Error(`Version ${versionToInstall} of package ${packageName} not found`);
+      throw new Error(
+        `Version ${versionToInstall} of package ${packageName} not found`,
+      );
     }
   } else {
-    maxSatisfyingVersion = metadata['dist-tags'].latest;
+    maxSatisfyingVersion = metadata["dist-tags"].latest;
   }
 
   const packageVersion = metadata.versions[maxSatisfyingVersion];
   const tarballUrl = packageVersion.dist.tarball;
-  const packageDir = join(installDir, 'node_modules', packageName);
-  const cachePath = join(globalCacheDir, packageName.startsWith('@') ? packageName.replace('/', '_') : packageName, `${maxSatisfyingVersion}.tgz`);
+  const packageDir = join(installDir, "node_modules", packageName);
+  const cachePath = join(
+    globalCacheDir,
+    packageName.startsWith("@") ? packageName.replace("/", "_") : packageName,
+    `${maxSatisfyingVersion}.tgz`,
+  );
 
   if (!existsSync(packageDir)) {
     mkdirSync(packageDir, { recursive: true });
-    await downloadAndExtractTarball(tarballUrl, packageDir, cachePath, spinner);
+    await downloadAndExtractTarball(
+      tarballUrl,
+      packageDir,
+      cachePath,
+      spinner,
+      currentPackageIndex,
+      totalPackages,
+    );
   }
 
-  const packageJsonPath = join(packageDir, 'package.json');
+  const packageJsonPath = join(packageDir, "package.json");
   const retryDelay = 100;
 
   while (!existsSync(packageJsonPath)) {
-    await new Promise(resolve => setTimeout(resolve, retryDelay));
+    await new Promise((resolve) => setTimeout(resolve, retryDelay));
   }
 
   let packageJson;
   while (true) {
     try {
-      packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
+      packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8"));
       break;
     } catch (error) {
-      await new Promise(resolve => setTimeout(resolve, retryDelay));
+      await new Promise((resolve) => setTimeout(resolve, retryDelay));
     }
   }
 
   const dependencies = packageJson.dependencies || {};
 
   for (const [depName, depVersion] of Object.entries(dependencies)) {
-    await installPackage(spinner, depName, depVersion, installDir, postInstallScripts, lockFileData, isDevDependency, currentPackageIndex, totalPackages);
+    await installPackage(
+      spinner,
+      depName,
+      depVersion,
+      installDir,
+      postInstallScripts,
+      lockFileData,
+      isDevDependency,
+      currentPackageIndex,
+      totalPackages,
+    );
+    if (currentPackageIndex < totalPackages) {
+      currentPackageIndex++;
+    }
   }
 
   postInstallScripts.push(packageDir);
@@ -90,16 +143,24 @@ export async function installPackage(spinner, packageName, version, installDir =
       version: maxSatisfyingVersion,
       resolved: tarballUrl,
       integrity: packageVersion.dist.integrity,
-      dependencies: Object.keys(dependencies).length > 0 ? dependencies : undefined
+      dependencies:
+        Object.keys(dependencies).length > 0 ? dependencies : undefined,
     };
   } else {
     lockFileData.dependencies[packageName] = {
       version: maxSatisfyingVersion,
       resolved: tarballUrl,
       integrity: packageVersion.dist.integrity,
-      dependencies: Object.keys(dependencies).length > 0 ? dependencies : undefined
+      dependencies:
+        Object.keys(dependencies).length > 0 ? dependencies : undefined,
     };
   }
 
-  return { packageName, version: maxSatisfyingVersion, resolved: tarballUrl, integrity: packageVersion.dist.integrity, dependencies };
+  return {
+    packageName,
+    version: maxSatisfyingVersion,
+    resolved: tarballUrl,
+    integrity: packageVersion.dist.integrity,
+    dependencies,
+  };
 }

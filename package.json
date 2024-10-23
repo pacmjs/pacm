@@ -10,6 +10,9 @@
   "scripts": {
     "build": "npm i . -g",
     "jest": "jest",
+    "format": "prettier --write .",
+    "lint": "eslint .",
+    "format:check": "prettier --check .",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

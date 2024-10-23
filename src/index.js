@@ -1,20 +1,20 @@
 #!/usr/bin/env node
-import { argv } from 'process';
-import { help, version, init, install } from './commands/index.js';
+import { argv } from "process";
+import { help, version, init, install } from "./commands/index.js";
 
 function main() {
   const command = argv[2];
   switch (command) {
-    case 'help':
+    case "help":
       help();
       break;
-    case 'version':
+    case "version":
       version();
       break;
-    case 'install':
+    case "install":
       install(argv.slice(3));
       break;
-    case 'init':
+    case "init":
       init(argv.slice(3));
       break;
     default:

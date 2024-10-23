@@ -1,17 +1,18 @@
-import { existsSync, writeFileSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
-import ora from 'ora';
-import { installPackage } from './installPackage.js';
-import { runPostInstallScript } from '../../utils/runPostInstallScript.js';
-import { createLockFile } from '../../utils/createLockFile.js';
-import process from 'node:process';
+import { existsSync, writeFileSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import ora from "ora";
+import { installPackage } from "./installPackage.js";
+import { runPostInstallScript } from "../../utils/runPostInstallScript.js";
+import { createLockFile } from "../../utils/createLockFile.js";
+import { fetchPackageMetadata } from "../../utils/fetchPackageMetadata.js";
+import process from "node:process";
 
 export async function install(args) {
   const packages = [];
   const flags = [];
 
-  args.forEach(arg => {
-    if (arg.startsWith('-')) {
+  args.forEach((arg) => {
+    if (arg.startsWith("-")) {
       flags.push(arg);
     } else {
       packages.push(arg);
@@ -19,13 +20,13 @@ export async function install(args) {
   });
 
   const installDir = process.cwd();
-  const packageJsonPath = join(installDir, 'package.json');
-  const lockFilePath = join(installDir, 'pacm.lockp');
+  const packageJsonPath = join(installDir, "package.json");
+  const lockFilePath = join(installDir, "pacm.lockp");
   let packageJson = {};
   let lockFileData = { dependencies: {}, devDependencies: {} };
 
   if (existsSync(packageJsonPath)) {
-    packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
+    packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8"));
   } else {
     packageJson = { dependencies: {}, devDependencies: {} };
   }
@@ -39,12 +40,11 @@ export async function install(args) {
   }
 
   if (existsSync(lockFilePath)) {
-    lockFileData = JSON.parse(readFileSync(lockFilePath, 'utf-8'));
+    lockFileData = JSON.parse(readFileSync(lockFilePath, "utf-8"));
   }
 
-  const spinner = ora('Installing packages').start();
+  const spinner = ora("Fetching package information").start();
   const postInstallScripts = [];
-  const startTime = Date.now();
 
   try {
     if (packages.length === 0) {
@@ -57,37 +57,82 @@ export async function install(args) {
       }
     }
 
-    const isDevDependency = flags.includes('--save-dev') || flags.includes('-D');
+    const isDevDependency = flags.includes("--save-dev") || flags.includes("-D");
 
-    const totalPackages = packages.length;
-    let currentPackageIndex = 0;
-
+    const packageInfoList = [];
     for (const pkg of packages) {
       let packageName, version;
 
-      if (pkg.startsWith('@')) {
-        const atIndex = pkg.indexOf('@', 1);
+      if (pkg.startsWith("@")) {
+        const atIndex = pkg.indexOf("@", 1);
         if (atIndex === -1) {
           packageName = pkg;
-          version = 'latest';
+          version = "latest";
         } else {
           packageName = pkg.substring(0, atIndex);
-          version = pkg.substring(atIndex + 1) || 'latest';
+          version = pkg.substring(atIndex + 1) || "latest";
         }
       } else {
-        [packageName, version] = pkg.split('@');
-        version = version || 'latest';
+        [packageName, version] = pkg.split("@");
+        version = version || "latest";
       }
 
-      spinner.text = `Parsed package: ${packageName}, version: ${version}`;
+      const packageInfo = await fetchPackageMetadata(
+        packageName,
+        spinner,
+        packageInfoList.length + 1,
+        packages.length
+      );
 
-      if (!packageName) {
-        throw new Error(`Invalid package name: ${pkg}`);
+      if (version === "latest") {
+        version = packageInfo["dist-tags"].latest;
       }
+
+      packageInfoList.push({ ...packageInfo, version });
+    }
+
+    const calculateTotalDependencies = (pkgInfo, version, visited = new Set()) => {
+      if (visited.has(pkgInfo.name)) return 0;
+      visited.add(pkgInfo.name);
+
+      const dependencies = pkgInfo.versions[version].dependencies || {};
+      let totalDependencies = Object.keys(dependencies).length;
+
+      for (const depName in dependencies) {
+        const depVersion = dependencies[depName];
+        const depInfo = packageInfoList.find((info) => info.name === depName);
+        if (depInfo) {
+          totalDependencies += calculateTotalDependencies(depInfo, depVersion, visited);
+        }
+      }
+
+      return totalDependencies;
+    };
+
+    const totalPackages = packageInfoList.reduce(
+      (sum, pkgInfo) => sum + calculateTotalDependencies(pkgInfo, pkgInfo.version),
+      0
+    ) + packages.length;
+    let currentPackageIndex = 0;
+
+    const startTime = Date.now();
+
+    for (const pkgInfo of packageInfoList) {
+      const { name: packageName, version } = pkgInfo;
 
       currentPackageIndex++;
       spinner.text = `[${currentPackageIndex}/${totalPackages}] Installing package: ${packageName}, version: ${version}`;
-      const installedPackage = await installPackage(spinner, packageName, version, installDir, postInstallScripts, lockFileData, isDevDependency, currentPackageIndex, totalPackages);
+      const installedPackage = await installPackage(
+        spinner,
+        packageName,
+        version,
+        installDir,
+        postInstallScripts,
+        lockFileData,
+        isDevDependency,
+        currentPackageIndex,
+        totalPackages
+      );
       spinner.text = `[${currentPackageIndex}/${totalPackages}] Installed package: ${installedPackage.packageName}, version: ${installedPackage.version}`;
 
       if (isDevDependency) {
@@ -96,7 +141,7 @@ export async function install(args) {
           version: installedPackage.version,
           resolved: installedPackage.resolved,
           integrity: installedPackage.integrity,
-          dependencies: installedPackage.dependencies
+          dependencies: installedPackage.dependencies,
         };
       } else {
         packageJson.dependencies[installedPackage.packageName] = installedPackage.version;
@@ -104,12 +149,12 @@ export async function install(args) {
           version: installedPackage.version,
           resolved: installedPackage.resolved,
           integrity: installedPackage.integrity,
-          dependencies: installedPackage.dependencies
+          dependencies: installedPackage.dependencies,
         };
       }
     }
 
-    spinner.text = 'Writing package.json';
+    spinner.text = "Writing package.json";
     writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
 
     for (const packageDir of postInstallScripts) {

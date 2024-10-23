@@ -1,8 +1,13 @@
-import fetch from 'node-fetch';
-import { retryOnECONNRESET } from './retry.js';
+import fetch from "node-fetch";
+import { retryOnECONNRESET } from "./retry.js";
 
-export async function fetchPackageMetadata(packageName, spinner) {
-  spinner.text = `Fetching metadata for ${packageName}`;
+export async function fetchPackageMetadata(
+  packageName,
+  spinner,
+  currentPackageIndex,
+  totalPackages,
+) {
+  spinner.text = `[${currentPackageIndex}/${totalPackages}] Fetching metadata for ${packageName}`;
   return retryOnECONNRESET(async (packageName) => {
     const response = await fetch(`https://registry.npmjs.org/${packageName}`);
     if (!response.ok) {
