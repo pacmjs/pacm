@@ -27,11 +27,15 @@ export async function install(args) {
   if (existsSync(packageJsonPath)) {
     packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
   } else {
-    packageJson = { dependencies: {} };
+    packageJson = { dependencies: {}, devDependencies: {} };
   }
 
   if (!packageJson.dependencies) {
     packageJson.dependencies = {};
+  }
+
+  if (!packageJson.devDependencies) {
+    packageJson.devDependencies = {};
   }
 
   if (existsSync(lockFilePath)) {
@@ -67,7 +71,12 @@ export async function install(args) {
       spinner.text = `Installing package: ${packageName}, version: ${version}`;
       const installedPackage = await installPackage(spinner, packageName, version, installDir, postInstallScripts);
       spinner.text = `Installed package: ${installedPackage.packageName}, version: ${installedPackage.version}`;
-      packageJson.dependencies[installedPackage.packageName] = installedPackage.version;
+
+      if (flags.includes('--save-dev') || flags.includes('-D')) {
+        packageJson.devDependencies[installedPackage.packageName] = installedPackage.version;
+      } else {
+        packageJson.dependencies[installedPackage.packageName] = installedPackage.version;
+      }
 
       // Add package information to lock file data
       lockFileData.dependencies[installedPackage.packageName] = {
