@@ -4,6 +4,7 @@ import ora from "ora";
 import fs, { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import process from "node:process";
+import { fetchAllDependencies } from "./remove/fetchAllDependencies.js";
 
 export const remove = async (args) => {
   const packages = [];
