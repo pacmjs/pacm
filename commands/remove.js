@@ -1,8 +1,9 @@
 import logger from "../lib/logger.js";
 import { fetchPackageMetadata } from "../utils/fetchPackageMetadata.js";
 import ora from "ora";
-import fs, { existsSync, readFileSync, writeFileSync, rmSync } from "node:fs";
+import fs, { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import process from "node:process";
 
 export const remove = async (args) => {
   const packages = [];

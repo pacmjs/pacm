@@ -13,10 +13,12 @@ export async function info(args) {
     });
   }
 
+  const [name, version] = packageName.split("@");
+
   const spinner = ora("Fetching package info").start();
 
   try {
-    const response = await fetch(`https://registry.npmjs.org/${packageName}`);
+    const response = await fetch(`https://registry.npmjs.org/${version ? name + "/" + version : name}`);
     const data = await response.json();
 
     spinner.stop();
@@ -27,7 +29,7 @@ export async function info(args) {
     });
 
     console.log(
-      `Name: ${data.name}\nDescription: ${data.description}\nLatest Version: ${data["dist-tags"].latest}\nAuthor: ${data.author ? data.author.name : "None"}\nLicense: ${data.license}\nHomepage: ${data.homepage}\nRepository: ${data.repository.url}\nKeywords: ${data.keywords.join(", ")}\nDependencies: ${data.dependencies ? Object.keys(data.dependencies).join(", ") : "None"}\n`,
+      `Name: ${data.name}\nDescription: ${data.description}\nLatest Version: ${version ? version : data["dist-tags"].latest}\nAuthor: ${data.author ? data.author.name : "None"}\nLicense: ${data.license}\nHomepage: ${data.homepage}\nRepository: ${data.repository.url}\nKeywords: ${data.keywords.join(", ")}\nDependencies: ${data.dependencies ? Object.keys(data.dependencies).join(", ") : "None"}\n`,
     );
 
     process.exit(0);

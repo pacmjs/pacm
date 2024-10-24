@@ -4,6 +4,7 @@ import closestScriptMatch from "../utils/closestScriptMatch.js";
 import { join } from "node:path";
 import { readFileSync } from "node:fs";
 import logger from "../lib/logger.js";
+import process from "node:process";
 
 export async function run(args) {
   const exists = await checkScriptExists(args);

@@ -1,6 +1,7 @@
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { execSync } from "node:child_process";
+import process from "node:process";
 
 export function link(args) {
   const packageName = args[0];
@@ -20,8 +21,6 @@ export function link(args) {
   }
 
   const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8"));
-  const globalNodeModules = execSync("npm root -g").toString().trim();
-  const linkPath = join(globalNodeModules, packageJson.name);
 
   try {
     execSync(`npm link ${packagePath}`);
@@ -34,7 +33,6 @@ export function link(args) {
   }
 
   const currentNodeModules = join(process.cwd(), "node_modules");
-  const currentLinkPath = join(currentNodeModules, packageJson.name);
 
   if (!existsSync(currentNodeModules)) {
     console.error(

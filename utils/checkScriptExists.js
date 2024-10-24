@@ -1,5 +1,6 @@
 import { join } from "node:path";
 import { readFileSync } from "node:fs";
+import process from "node:process";
 
 export default function checkScriptExists(args) {
   const scriptName = args[0];
@@ -20,10 +21,6 @@ export default function checkScriptExists(args) {
   const script = scripts[scriptName];
 
   if (!script) {
-    const cloestMatch = Object.keys(scripts).find((key) =>
-      key.includes(scriptName),
-    );
-
     return `No script named "${scriptName}" found in package.json.`;
   }
 

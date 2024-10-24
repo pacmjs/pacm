@@ -5,6 +5,7 @@ import { fetchPackageMetadata } from "../utils/fetchPackageMetadata.js";
 import { installPackage } from "./install/installPackage.js";
 import { createLockFile } from "../utils/createLockFile.js";
 import chalk from "chalk";
+import process from "node:process";
 
 export async function update(args) {
   const packages = [];

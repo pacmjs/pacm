@@ -7,7 +7,6 @@ import { downloadAndExtractTarball } from "../../utils/downloadAndExtractTarball
 import { homedir } from "node:os";
 import process from "node:process";
 import chalk from "chalk";
-import logger from "../../lib/logger.js";
 
 const globalCacheDir = join(homedir(), ".pacm-cache");
 
@@ -28,19 +27,15 @@ export async function installPackage(
   isForce = false,
 ) {
   if (typeof packageName !== "string" || typeof version !== "string") {
-    logger.logError({
-      message: "Invalid packageName or version. Both must be strings.",
-      exit: true,
-      errorType: "PACM_ERROR",
-    });
+    throw new Error(
+      "[ERRNO1] Invalid packageName or version. Both must be strings.",
+    );
   }
 
   if (!packageName || !version) {
-    logger.logError({
-      message: "[ERRNO2] Invalid packageName or version. Both must be defined.",
-      exit: true,
-      errorType: "PACM_ERROR",
-    });
+    throw new Error(
+      "[ERRNO2] Invalid packageName or version. Both must be defined.",
+    );
   }
 
   let metadata;
@@ -56,11 +51,7 @@ export async function installPackage(
     );
     versionToInstall = npmVersion || metadata["dist-tags"].latest;
   } else if (version && version.startsWith("github:")) {
-    logger.logError({
-      message: "GitHub packages are not supported yet.",
-      exit: true,
-      errorType: "PACM_GITHUB_EXTENSION_ERROR",
-    });
+    throw new Error("GitHub packages are not supported yet");
   } else {
     metadata = await fetchPackageMetadata(
       packageName,
@@ -83,11 +74,9 @@ export async function installPackage(
     );
 
     if (!maxSatisfyingVersion) {
-      logger.logError({
-        message: `No version found for ${packageName}@${versionToInstall}`,
-        exit: true,
-        errorType: "PACM_VERSION_ERROR",
-      });
+      throw new Error(
+        `Version ${versionToInstall} of package ${packageName} not found`,
+      );
     }
   } else {
     maxSatisfyingVersion = metadata["dist-tags"].latest;
@@ -115,8 +104,7 @@ export async function installPackage(
     );
   }
 
-  const dependencies =
-    metadata.versions[maxSatisfyingVersion].dependencies || {};
+  const dependencies = metadata.versions[maxSatisfyingVersion].dependencies || {};
 
   for (const [depName, depVersion] of Object.entries(dependencies)) {
     await installPackage(

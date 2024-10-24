@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import logger from "../lib/logger.js";
+import process from "node:process";
 
 export default async function closestScriptMatch(args) {
   const scriptName = args[0];
