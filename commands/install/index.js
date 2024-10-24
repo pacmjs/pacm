@@ -65,50 +65,43 @@ export async function install(args) {
     const isDevDependency = flags.includes("--dev") || flags.includes("-D");
     const isForce = flags.includes("--force") || flags.includes("-f");
 
-    const packageInfoList = await Promise.all(
-      packages.map(async (pkg) => {
-        let packageName, version;
+    const packageInfoList = [];
+    for (const pkg of packages) {
+      let packageName, version;
 
-        if (pkg.startsWith("@")) {
-          const atIndex = pkg.indexOf("@", 1);
-          if (atIndex === -1) {
-            packageName = pkg;
-            version = "latest";
-          } else {
-            packageName = pkg.substring(0, atIndex);
-            version = pkg.substring(atIndex + 1) || "latest";
-          }
+      if (pkg.startsWith("@")) {
+        const atIndex = pkg.indexOf("@", 1);
+        if (atIndex === -1) {
+          packageName = pkg;
+          version = "latest";
         } else {
-          [packageName, version] = pkg.split("@");
-          version = version || "latest";
+          packageName = pkg.substring(0, atIndex);
+          version = pkg.substring(atIndex + 1) || "latest";
         }
+      } else {
+        [packageName, version] = pkg.split("@");
+        version = version || "latest";
+      }
 
-        const packageInfo = await fetchPackageMetadata(
-          packageName,
-          spinner,
-          packageInfoList.length + 1,
-          packages.length
-        );
+      const packageInfo = await fetchPackageMetadata(
+        packageName,
+        spinner,
+        packageInfoList.length + 1,
+        packages.length
+      );
 
-        if (version === "latest") {
-          version = packageInfo["dist-tags"].latest;
+      if (version === "latest") {
+        version = packageInfo["dist-tags"].latest;
+      }
+
+      packageInfoList.push({ ...packageInfo, version });
+
+      if (packageInfo.dependencies) {
+        for (const depName in packageInfo.dependencies) {
+          await fetchAllDependencies(depName, spinner, packageInfoList, packages, installDir);
         }
-
-        return { ...packageInfo, version };
-      })
-    );
-
-    await Promise.all(
-      packageInfoList.map(async (packageInfo) => {
-        if (packageInfo.dependencies) {
-          await Promise.all(
-            Object.keys(packageInfo.dependencies).map((depName) =>
-              fetchAllDependencies(depName, spinner, packageInfoList, packages, installDir)
-            )
-          );
-        }
-      })
-    );
+      }
+    }
 
     const calculateTotalDependencies = (pkgInfo, version, visited = new Set()) => {
       if (visited.has(pkgInfo.name)) return 0;
@@ -136,67 +129,65 @@ export async function install(args) {
 
     const startTime = Date.now();
 
-    await Promise.all(
-      packageInfoList.map(async (pkgInfo) => {
-        const { name: packageName, version } = pkgInfo;
+    for (const pkgInfo of packageInfoList) {
+      const { name: packageName, version } = pkgInfo;
 
-        if (!isForce) {
-          const nodeModulesDir = join(installDir, "node_modules", packageName);
-          if (existsSync(nodeModulesDir)) {
-            const packageJsonPath = join(nodeModulesDir, "package.json");
-            const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8"));
-            const installedVersion = packageJson.version;
+      if (!isForce) {
+        const nodeModulesDir = join(installDir, "node_modules", packageName);
+        if (existsSync(nodeModulesDir)) {
+          const packageJsonPath = join(nodeModulesDir, "package.json");
+          const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8"));
+          const installedVersion = packageJson.version;
 
-            if (installedVersion === version) {
-              alreadyInstalledPackages.push(packageName);
-              spinner.text = `[${currentPackageIndex}/${totalPackages}] Package already installed: ${packageName}, version: ${version}, skipping.`;
-              return;
-            }
+          if (installedVersion === version) {
+            alreadyInstalledPackages.push(packageName);
+            spinner.text = `[${currentPackageIndex}/${totalPackages}] Package already installed: ${packageName}, version: ${version}, skipping.`;
+            continue;
           }
-        }
+        };
+      };
 
-        currentPackageIndex++;
-        spinner.text = `${isForce ? chalk.bgYellow("FORCE") : ""} [${currentPackageIndex}/${totalPackages}] Installing package: ${packageName}, version: ${version}`;
-        const installedPackage = await installPackage(
-          spinner,
-          packageName,
-          version,
-          installDir,
-          postInstallScripts,
-          lockFileData,
-          isDevDependency,
-          currentPackageIndex,
-          totalPackages,
-          isForce
-        );
-        spinner.text = `${isForce ? chalk.bgYellow("FORCE") : ""} [${currentPackageIndex}/${totalPackages}] Installed package: ${installedPackage.packageName}, version: ${installedPackage.version}`;
+      currentPackageIndex++;
+      spinner.text = `${isForce ? chalk.bgYellow("FORCE") : ""} [${currentPackageIndex}/${totalPackages}] Installing package: ${packageName}, version: ${version}`;
+      const installedPackage = await installPackage(
+        spinner,
+        packageName,
+        version,
+        installDir,
+        postInstallScripts,
+        lockFileData,
+        isDevDependency,
+        currentPackageIndex,
+        totalPackages,
+        isForce
+      );
+      spinner.text = `${isForce ? chalk.bgYellow("FORCE") : ""} [${currentPackageIndex}/${totalPackages}] Installed package: ${installedPackage.packageName}, version: ${installedPackage.version}`;
 
-        if (isDevDependency) {
-          packageJson.devDependencies[installedPackage.packageName] = installedPackage.version;
-          lockFileData.devDependencies[installedPackage.packageName] = {
-            version: installedPackage.version,
-            resolved: installedPackage.resolved,
-            integrity: installedPackage.integrity,
-            dependencies: installedPackage.dependencies,
-          };
-        } else {
-          packageJson.dependencies[installedPackage.packageName] = installedPackage.version;
-          lockFileData.dependencies[installedPackage.packageName] = {
-            version: installedPackage.version,
-            resolved: installedPackage.resolved,
-            integrity: installedPackage.integrity,
-            dependencies: installedPackage.dependencies,
-          };
-        }
-      })
-    );
+      if (isDevDependency) {
+        packageJson.devDependencies[installedPackage.packageName] = installedPackage.version;
+        lockFileData.devDependencies[installedPackage.packageName] = {
+          version: installedPackage.version,
+          resolved: installedPackage.resolved,
+          integrity: installedPackage.integrity,
+          dependencies: installedPackage.dependencies,
+        };
+      } else {
+        packageJson.dependencies[installedPackage.packageName] = installedPackage.version;
+        lockFileData.dependencies[installedPackage.packageName] = {
+          version: installedPackage.version,
+          resolved: installedPackage.resolved,
+          integrity: installedPackage.integrity,
+          dependencies: installedPackage.dependencies,
+        };
+      }
+    }
 
     spinner.text = "Writing package.json";
     writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
 
-    await Promise.all(
-      postInstallScripts.map((packageDir) => runPostInstallScript(packageDir, spinner))
-    );
+    for (const packageDir of postInstallScripts) {
+      await runPostInstallScript(packageDir, spinner);
+    }
 
     await runPostInstallScript(installDir, spinner);
 
