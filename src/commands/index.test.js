@@ -1,11 +1,22 @@
-const { command1, command2 } = require("./index");
+import { link } from "../functions/link.js";
+import { unlink } from "../functions/unlink.js";
+import { update } from "./update.js";
+import { list } from "./list.js";
 
 describe("Command Tests", () => {
-  test("Test command1", () => {
-    // Write your test case for command1 here
+  test("Test link", () => {
+    // Write your test case for link here
   });
 
-  test("Test command2", () => {
-    // Write your test case for command2 here
+  test("Test unlink", () => {
+    // Write your test case for unlink here
+  });
+
+  test("Test update", () => {
+    // Write your test case for update here
+  });
+
+  test("Test list", () => {
+    // Write your test case for list here
   });
 });
