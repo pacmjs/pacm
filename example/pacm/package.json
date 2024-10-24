@@ -11,5 +11,6 @@
   "license": "BOWL",
   "dependencies": {
     "axios": "1.7.7"
-  }
+  },
+  "devDependencies": {}
 }

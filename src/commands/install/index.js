@@ -6,10 +6,32 @@ import { runPostInstallScript } from "../../utils/runPostInstallScript.js";
 import { createLockFile } from "../../utils/createLockFile.js";
 import { fetchPackageMetadata } from "../../utils/fetchPackageMetadata.js";
 import process from "node:process";
+import chalk from "chalk";
+
+async function fetchAllDependencies(depName, spinner, packageInfoList, packages) {
+  if (!packages.includes(depName)) {
+    packages.push(depName);
+    const packageInfo = await fetchPackageMetadata(
+      depName,
+      spinner,
+      packageInfoList.length + 1,
+      packages.length
+    );
+
+    packageInfoList.push({ ...packageInfo, version: "latest" });
+
+    if (packageInfo.dependencies) {
+      for (const subDepName in packageInfo.dependencies) {
+        await fetchAllDependencies(subDepName, spinner, packageInfoList, packages);
+      }
+    }
+  }
+}
 
 export async function install(args) {
   const packages = [];
   const flags = [];
+  const alreadyInstalledPackages = [];
 
   args.forEach((arg) => {
     if (arg.startsWith("-")) {
@@ -43,7 +65,7 @@ export async function install(args) {
     lockFileData = JSON.parse(readFileSync(lockFilePath, "utf-8"));
   }
 
-  const spinner = ora("Fetching package information").start();
+  const spinner = ora("[0/0] Fetching package information").start();
   const postInstallScripts = [];
 
   try {
@@ -54,10 +76,13 @@ export async function install(args) {
       } else if (existsSync(packageJsonPath)) {
         packages.push(...Object.keys(packageJson.dependencies));
         packages.push(...Object.keys(packageJson.devDependencies));
+      } else {
+        throw new Error("No packages to install.");
       }
     }
 
     const isDevDependency = flags.includes("--save-dev") || flags.includes("-D");
+    const isForce = flags.includes("--force") || flags.includes("-f");
 
     const packageInfoList = [];
     for (const pkg of packages) {
@@ -89,6 +114,12 @@ export async function install(args) {
       }
 
       packageInfoList.push({ ...packageInfo, version });
+
+      if (packageInfo.dependencies) {
+        for (const depName in packageInfo.dependencies) {
+          await fetchAllDependencies(depName, spinner, packageInfoList, packages);
+        }
+      }
     }
 
     const calculateTotalDependencies = (pkgInfo, version, visited = new Set()) => {
@@ -120,8 +151,23 @@ export async function install(args) {
     for (const pkgInfo of packageInfoList) {
       const { name: packageName, version } = pkgInfo;
 
+      if (!isForce) {
+        const nodeModulesDir = join(installDir, "node_modules", packageName);
+        if (existsSync(nodeModulesDir)) {
+          const packageJsonPath = join(nodeModulesDir, "package.json");
+          const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8"));
+          const installedVersion = packageJson.version;
+
+          if (installedVersion === version) {
+            alreadyInstalledPackages.push(packageName);
+            spinner.text = `[${currentPackageIndex}/${totalPackages}] Package already installed: ${packageName}, version: ${version}, skipping.`;
+            continue;
+          }
+        };
+      };
+
       currentPackageIndex++;
-      spinner.text = `[${currentPackageIndex}/${totalPackages}] Installing package: ${packageName}, version: ${version}`;
+      spinner.text = `${isForce ? chalk.bgYellow("FORCE") : ""} [${currentPackageIndex}/${totalPackages}] Installing package: ${packageName}, version: ${version}`;
       const installedPackage = await installPackage(
         spinner,
         packageName,
@@ -131,9 +177,10 @@ export async function install(args) {
         lockFileData,
         isDevDependency,
         currentPackageIndex,
-        totalPackages
+        totalPackages,
+        isForce
       );
-      spinner.text = `[${currentPackageIndex}/${totalPackages}] Installed package: ${installedPackage.packageName}, version: ${installedPackage.version}`;
+      spinner.text = `${isForce ? chalk.bgYellow("FORCE") : ""} [${currentPackageIndex}/${totalPackages}] Installed package: ${installedPackage.packageName}, version: ${installedPackage.version}`;
 
       if (isDevDependency) {
         packageJson.devDependencies[installedPackage.packageName] = installedPackage.version;
@@ -170,6 +217,7 @@ export async function install(args) {
     const durationText = duration < 1000 ? `${duration} ms` : `${(duration / 1000).toFixed(2)} seconds`;
 
     spinner.succeed(`Packages installed successfully in ${durationText}.`);
+    if (alreadyInstalledPackages.length > 0) console.log(`\n\n${chalk.bgYellow("Packages already installed")} ${alreadyInstalledPackages.join(", ")}`);
   } catch (error) {
     spinner.fail(`Installation failed: ${error.message}`);
     console.error(error);

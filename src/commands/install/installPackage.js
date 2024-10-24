@@ -6,6 +6,7 @@ import { fetchPackageMetadata } from "../../utils/fetchPackageMetadata.js";
 import { downloadAndExtractTarball } from "../../utils/downloadAndExtractTarball.js";
 import { homedir } from "node:os";
 import process from "node:process";
+import chalk from "chalk";
 
 const globalCacheDir = join(homedir(), ".pacm-cache");
 
@@ -23,6 +24,7 @@ export async function installPackage(
   isDevDependency = false,
   currentPackageIndex = 0,
   totalPackages = 0,
+  isForce = false,
 ) {
   if (typeof packageName !== "string" || typeof version !== "string") {
     throw new Error(
@@ -56,11 +58,12 @@ export async function installPackage(
       spinner,
       currentPackageIndex,
       totalPackages,
+      isForce,
     );
     versionToInstall = version || metadata["dist-tags"].latest;
   }
 
-  spinner.text = `[${currentPackageIndex}/${totalPackages}] Validating version for ${packageName}`;
+  spinner.text = `${isForce ? chalk.bgYellow("FORCE") : ""} [${currentPackageIndex}/${totalPackages}] Validating version for ${packageName}`;
   const availableVersions = Object.keys(metadata.versions);
   let maxSatisfyingVersion;
 
@@ -97,27 +100,11 @@ export async function installPackage(
       spinner,
       currentPackageIndex,
       totalPackages,
+      isForce,
     );
   }
 
-  const packageJsonPath = join(packageDir, "package.json");
-  const retryDelay = 100;
-
-  while (!existsSync(packageJsonPath)) {
-    await new Promise((resolve) => setTimeout(resolve, retryDelay));
-  }
-
-  let packageJson;
-  while (true) {
-    try {
-      packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8"));
-      break;
-    } catch (error) {
-      await new Promise((resolve) => setTimeout(resolve, retryDelay));
-    }
-  }
-
-  const dependencies = packageJson.dependencies || {};
+  const dependencies = metadata.versions[maxSatisfyingVersion].dependencies || {};
 
   for (const [depName, depVersion] of Object.entries(dependencies)) {
     await installPackage(
@@ -130,6 +117,7 @@ export async function installPackage(
       isDevDependency,
       currentPackageIndex,
       totalPackages,
+      isForce,
     );
     if (currentPackageIndex < totalPackages) {
       currentPackageIndex++;
