@@ -87,7 +87,7 @@ export async function installPackage(
   const tarballUrl = packageVersion.dist.tarball;
   const packageDir = isRootPackage
     ? join(installDir, "node_modules", packageName)
-    : join(installDir, "node_modules", ".pacm", packageName);
+    : join(installDir, "node_modules", packageName);
   const cachePath = join(
     globalCacheDir,
     packageName.startsWith("@") ? packageName.replace("/", "_") : packageName,
@@ -101,8 +101,6 @@ export async function installPackage(
       packageDir,
       cachePath,
       spinner,
-      currentPackageIndex,
-      totalPackages,
       isForce,
     );
   }

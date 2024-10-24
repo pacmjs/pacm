@@ -26,7 +26,7 @@ async function fetchAllDependencies(depName, spinner, packageInfoList, packages,
       }
     }
 
-    const depInstallDir = join(installDir, "node_modules", ".pacm");
+    const depInstallDir = join(installDir, "node_modules");
     if (!existsSync(depInstallDir)) {
       mkdirSync(depInstallDir, { recursive: true });
     }
