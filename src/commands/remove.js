@@ -1,7 +1,7 @@
 import logger from "../lib/logger.js";
 import { fetchPackageMetadata } from "../utils/fetchPackageMetadata.js";
 import ora from "ora";
-import fs, { existsSync, readFileSync, writeFileSync } from "node:fs";
+import fs, { existsSync, readFileSync, writeFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 
 export const remove = async (args) => {
@@ -16,7 +16,7 @@ export const remove = async (args) => {
     } else {
       if (arg.startsWith("@")) {
         const [scope, name] = arg.split("/");
-        packages.push(name.split("@")[0]);
+        packages.push(`${scope}/${name.split("@")[0]}`);
       } else {
         packages.push(arg.split("@")[0]);
       }
@@ -99,7 +99,7 @@ export const remove = async (args) => {
         notInstalledPackages.length > 1 ? "s are" : " is"
       } not installed: ${notInstalledPackages.join(", ")}`,
       exit: false,
-      errorType: " PACM_REMOVAL_ERROR ",
+      errorType: "PACM_REMOVAL_ERROR",
     });
   }
 
