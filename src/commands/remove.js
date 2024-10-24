@@ -1,4 +1,4 @@
-import chalk from "chalk";
+import logger from "../lib/logger.js";
 import { fetchPackageMetadata } from "../utils/fetchPackageMetadata.js";
 import ora from "ora";
 import fs, { existsSync, readFileSync, writeFileSync } from "node:fs";
@@ -48,10 +48,16 @@ export const remove = async (args) => {
     lockFileData = JSON.parse(readFileSync(lockFilePath, "utf-8"));
   }
 
-  Object.keys(packageJson.dependencies).forEach(pkg => initiallyInstalledPackages.add(pkg));
-  Object.keys(packageJson.devDependencies).forEach(pkg => initiallyInstalledPackages.add(pkg));
+  Object.keys(packageJson.dependencies).forEach((pkg) =>
+    initiallyInstalledPackages.add(pkg),
+  );
+  Object.keys(packageJson.devDependencies).forEach((pkg) =>
+    initiallyInstalledPackages.add(pkg),
+  );
 
-  const spinner = ora(`Removing package${packages.length > 1 ? "s" : ""}`).start();
+  const spinner = ora(
+    `Removing package${packages.length > 1 ? "s" : ""}`,
+  ).start();
 
   const removeAllDependencies = async (pkg) => {
     const packageInfo = await fetchPackageMetadata(pkg, spinner, 1, 1);
@@ -88,14 +94,13 @@ export const remove = async (args) => {
 
   spinner.succeed(`Completed package${packages.length > 1 ? "s" : ""} removal`);
   if (notInstalledPackages.length > 0) {
-    console.log(
-      "\n\n" +
-        chalk.red(
-          `The following package${
-            notInstalledPackages.length > 1 ? "s are" : " is"
-          } not installed: ${notInstalledPackages.join(", ")}`
-        )
-    );
+    logger.logError({
+      message: `The following package${
+        notInstalledPackages.length > 1 ? "s are" : " is"
+      } not installed: ${notInstalledPackages.join(", ")}`,
+      exit: false,
+      errorType: " PACM_REMOVAL_ERROR ",
+    });
   }
 
   writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));

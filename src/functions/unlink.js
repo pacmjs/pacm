@@ -14,7 +14,9 @@ export function unlink(args) {
 
   try {
     execSync(`npm unlink ${packageName}`);
-    console.log(`Successfully unlinked ${packageName} from global node_modules.`);
+    console.log(
+      `Successfully unlinked ${packageName} from global node_modules.`,
+    );
   } catch (error) {
     console.error(`Failed to unlink ${packageName}: ${error.message}`);
     process.exit(1);
@@ -24,7 +26,9 @@ export function unlink(args) {
   const currentLinkPath = join(currentNodeModules, packageName);
 
   if (!existsSync(currentNodeModules)) {
-    console.error(`node_modules directory does not exist in the current directory.`);
+    console.error(
+      `node_modules directory does not exist in the current directory.`,
+    );
     process.exit(1);
   }
 
@@ -35,9 +39,13 @@ export function unlink(args) {
 
   try {
     execSync(`npm unlink ${packageName}`);
-    console.log(`Successfully unlinked ${packageName} from local node_modules.`);
+    console.log(
+      `Successfully unlinked ${packageName} from local node_modules.`,
+    );
   } catch (error) {
-    console.error(`Failed to unlink ${packageName} from local node_modules: ${error.message}`);
+    console.error(
+      `Failed to unlink ${packageName} from local node_modules: ${error.message}`,
+    );
     process.exit(1);
   }
 }

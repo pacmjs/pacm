@@ -84,7 +84,7 @@ export async function update(args) {
         packageName,
         spinner,
         packageInfoList.length + 1,
-        packages.length
+        packages.length,
       );
 
       if (version === "latest") {
@@ -106,7 +106,9 @@ export async function update(args) {
         const nodeModulesDir = join(installDir, "node_modules", packageName);
         if (existsSync(nodeModulesDir)) {
           const packageJsonPath = join(nodeModulesDir, "package.json");
-          const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8"));
+          const packageJson = JSON.parse(
+            readFileSync(packageJsonPath, "utf-8"),
+          );
           const installedVersion = packageJson.version;
 
           if (installedVersion === version) {
@@ -114,8 +116,8 @@ export async function update(args) {
             spinner.text = `[${currentPackageIndex}/${totalPackages}] Package already up-to-date: ${packageName}, version: ${version}, skipping.`;
             continue;
           }
-        };
-      };
+        }
+      }
 
       currentPackageIndex++;
       spinner.text = `${isForce ? chalk.bgYellow("FORCE") : ""} [${currentPackageIndex}/${totalPackages}] Updating package: ${packageName}, version: ${version}`;
@@ -129,12 +131,13 @@ export async function update(args) {
         isDevDependency,
         currentPackageIndex,
         totalPackages,
-        isForce
+        isForce,
       );
       spinner.text = `${isForce ? chalk.bgYellow("FORCE") : ""} [${currentPackageIndex}/${totalPackages}] Updated package: ${updatedPackage.packageName}, version: ${updatedPackage.version}`;
 
       if (isDevDependency) {
-        packageJson.devDependencies[updatedPackage.packageName] = updatedPackage.version;
+        packageJson.devDependencies[updatedPackage.packageName] =
+          updatedPackage.version;
         lockFileData.devDependencies[updatedPackage.packageName] = {
           version: updatedPackage.version,
           resolved: updatedPackage.resolved,
@@ -142,7 +145,8 @@ export async function update(args) {
           dependencies: updatedPackage.dependencies,
         };
       } else {
-        packageJson.dependencies[updatedPackage.packageName] = updatedPackage.version;
+        packageJson.dependencies[updatedPackage.packageName] =
+          updatedPackage.version;
         lockFileData.dependencies[updatedPackage.packageName] = {
           version: updatedPackage.version,
           resolved: updatedPackage.resolved,
@@ -159,10 +163,16 @@ export async function update(args) {
 
     const endTime = Date.now();
     const duration = endTime - startTime;
-    const durationText = duration < 1000 ? `${duration} ms` : `${(duration / 1000).toFixed(2)} seconds`;
+    const durationText =
+      duration < 1000
+        ? `${duration} ms`
+        : `${(duration / 1000).toFixed(2)} seconds`;
 
     spinner.succeed(`Packages updated successfully in ${durationText}.`);
-    if (alreadyUpdatedPackages.length > 0) console.log(`\n\n${chalk.bgYellow("Packages already up-to-date")} ${alreadyUpdatedPackages.join(", ")}`);
+    if (alreadyUpdatedPackages.length > 0)
+      console.log(
+        `\n\n${chalk.bgYellow("Packages already up-to-date")} ${alreadyUpdatedPackages.join(", ")}`,
+      );
   } catch (error) {
     spinner.fail(`Update failed: ${error.message}`);
     console.error(error);

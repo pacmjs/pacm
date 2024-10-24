@@ -1,8 +1,9 @@
 import { existsSync, rmSync } from "node:fs";
 import { join } from "node:path";
+import { homedir } from "node:os";
 
 export function clean() {
-  const cacheDir = join(process.cwd(), "node_modules", ".cache");
+  const cacheDir = join(homedir(), ".pacm-cache");
 
   if (existsSync(cacheDir)) {
     rmSync(cacheDir, { recursive: true, force: true });

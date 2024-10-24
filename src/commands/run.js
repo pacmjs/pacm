@@ -1,11 +1,26 @@
 import { exec } from "child_process";
-import { readFileSync } from "fs";
-import { join } from "path";
+import checkScriptExists from "../utils/checkScriptExists.js";
+import closestScriptMatch from "../utils/closestScriptMatch.js";
+import { join } from "node:path";
+import { readFileSync } from "node:fs";
+import logger from "../lib/logger.js";
 
-export function run(args) {
-  const scriptName = args[0];
-  if (!scriptName) {
-    console.error("No script name provided.");
+export async function run(args) {
+  const exists = await checkScriptExists(args);
+
+  if (exists !== true) {
+    const closestMatch = await closestScriptMatch(args);
+
+    logger.logError({
+      message: exists,
+      exit: false,
+      errorType: " PACM_RUNTIME_ERROR ",
+    });
+    if (closestMatch) {
+      console.log(
+        `\n\nDid you mean "${closestMatch}"? Run "pacm run ${closestMatch}" to execute.`,
+      );
+    }
     process.exit(1);
   }
 
@@ -15,23 +30,23 @@ export function run(args) {
   try {
     packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8"));
   } catch (error) {
-    console.error("Failed to read package.json:", error);
-    process.exit(1);
+    logger.logError({
+      message: `Failed to read package.json: ${error}`,
+      exit: true,
+      errorType: " PACM_RUNTIME_ERROR ",
+    });
   }
 
   const scripts = packageJson.scripts || {};
-  const script = scripts[scriptName];
-
-  if (!script) {
-    console.error(`No script named "${scriptName}" found in package.json.`);
-    process.exit(1);
-  }
+  const script = scripts[args[0]];
 
   exec(script, (error, stdout, stderr) => {
-    if (error) {
-      console.error(`Error executing script "${scriptName}":`, error);
-      process.exit(1);
-    }
+    if (error)
+      logger.logError({
+        message: error,
+        exit: true,
+        errorType: " PACM_RUNTIME_ERROR ",
+      });
     console.log(stdout);
     console.error(stderr);
   });

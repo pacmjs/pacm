@@ -7,7 +7,9 @@ export function link(args) {
   const packagePath = join(process.cwd(), packageName);
 
   if (!existsSync(packagePath)) {
-    console.error(`Package ${packageName} does not exist in the current directory.`);
+    console.error(
+      `Package ${packageName} does not exist in the current directory.`,
+    );
     process.exit(1);
   }
 
@@ -23,7 +25,9 @@ export function link(args) {
 
   try {
     execSync(`npm link ${packagePath}`);
-    console.log(`Successfully linked ${packageJson.name} to global node_modules.`);
+    console.log(
+      `Successfully linked ${packageJson.name} to global node_modules.`,
+    );
   } catch (error) {
     console.error(`Failed to link ${packageJson.name}: ${error.message}`);
     process.exit(1);
@@ -33,15 +37,21 @@ export function link(args) {
   const currentLinkPath = join(currentNodeModules, packageJson.name);
 
   if (!existsSync(currentNodeModules)) {
-    console.error(`node_modules directory does not exist in the current directory.`);
+    console.error(
+      `node_modules directory does not exist in the current directory.`,
+    );
     process.exit(1);
   }
 
   try {
     execSync(`npm link ${packageJson.name}`);
-    console.log(`Successfully linked ${packageJson.name} to local node_modules.`);
+    console.log(
+      `Successfully linked ${packageJson.name} to local node_modules.`,
+    );
   } catch (error) {
-    console.error(`Failed to link ${packageJson.name} to local node_modules: ${error.message}`);
+    console.error(
+      `Failed to link ${packageJson.name} to local node_modules: ${error.message}`,
+    );
     process.exit(1);
   }
 }
