@@ -31,7 +31,7 @@ export async function installPackage(
     logger.logError({
       message: "Invalid packageName or version. Both must be strings.",
       exit: true,
-      errorType: "PACM_ERROR"
+      errorType: "PACM_ERROR",
     });
   }
 
@@ -39,7 +39,7 @@ export async function installPackage(
     logger.logError({
       message: "[ERRNO2] Invalid packageName or version. Both must be defined.",
       exit: true,
-      errorType: "PACM_ERROR"
+      errorType: "PACM_ERROR",
     });
   }
 
@@ -59,7 +59,7 @@ export async function installPackage(
     logger.logError({
       message: "GitHub packages are not supported yet.",
       exit: true,
-      errorType: "PACM_GITHUB_EXTENSION_ERROR"
+      errorType: "PACM_GITHUB_EXTENSION_ERROR",
     });
   } else {
     metadata = await fetchPackageMetadata(
@@ -86,7 +86,7 @@ export async function installPackage(
       logger.logError({
         message: `No version found for ${packageName}@${versionToInstall}`,
         exit: true,
-        errorType: "PACM_VERSION_ERROR"
+        errorType: "PACM_VERSION_ERROR",
       });
     }
   } else {

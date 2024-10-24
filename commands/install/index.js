@@ -255,15 +255,18 @@ export async function install(args) {
         `\n\n${chalk.bgYellow("Packages already installed")} ${alreadyInstalledPackages.join(", ")}`,
       );
   } catch (error) {
-      spinner.fail(`Installation failed!`);
-    
-      const stackLines = error.stack.split('\n');
-      const filteredStack = stackLines.slice(1).filter(line => !line.includes('length is not defined')).join('\n');
-    
-      logger.logError({
-        message: `${error.message}\n\n${filteredStack}`,
-        exit: true,
-        errorType: "PACM_INSTALL_ERROR",
-      });
+    spinner.fail(`Installation failed!`);
+
+    const stackLines = error.stack.split("\n");
+    const filteredStack = stackLines
+      .slice(1)
+      .filter((line) => !line.includes("length is not defined"))
+      .join("\n");
+
+    logger.logError({
+      message: `${error.message}\n\n${filteredStack}`,
+      exit: true,
+      errorType: "PACM_INSTALL_ERROR",
+    });
   }
 }

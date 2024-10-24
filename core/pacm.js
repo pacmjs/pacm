@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* eslint-disable no-case-declarations */
 import { argv } from "node:process";
 import {
   help,
@@ -8,14 +9,16 @@ import {
   remove,
   run,
   clean,
+  publish,
+  search,
+  info,
 } from "../commands/index.js";
-import { link } from "../functions/link.js";
-import { unlink } from "../functions/unlink.js";
 import { update } from "../commands/update.js";
 import { list } from "../commands/list.js";
 import checkScriptExists from "../utils/checkScriptExists.js";
 import closestScriptMatch from "../utils/closestScriptMatch.js";
 import logger from "../lib/logger.js";
+import process from "node:process";
 
 function main() {
   const command = argv[2];
@@ -23,7 +26,25 @@ function main() {
     case "help":
       help();
       break;
+    case "--help":
+      help();
+      break;
+    case "-h":
+      help();
+      break;
+    case "-H":
+      help();
+      break;
     case "version":
+      version();
+      break;
+    case "--version":
+      version();
+      break;
+    case "-v":
+      version();
+      break;
+    case "-V":
       version();
       break;
     case "install":
@@ -47,12 +68,12 @@ function main() {
     case "init":
       init(argv.slice(3));
       break;
-    case "link":
+    /*case "link":
       link(argv.slice(3));
       break;
     case "unlink":
       unlink(argv.slice(3));
-      break;
+      break;*/
     case "update":
       update(argv.slice(3));
       break;
@@ -65,6 +86,15 @@ function main() {
     case "clean":
       clean(argv.slice(3));
       break;
+    case "publish":
+      publish(argv.slice(3));
+      break;
+    case "search":
+      search(argv.slice(3));
+      break;
+    case "info":
+      info(argv.slice(3));
+      break;
     default:
       const scriptExists = checkScriptExists(command);
       if (scriptExists) {
@@ -74,7 +104,7 @@ function main() {
 
         if (closestMatch) {
           logger.logError({
-            message: exists,
+            message: scriptExists,
             exit: false,
             errorType: " PACM_RUNTIME_ERROR ",
           });
