@@ -2,19 +2,23 @@ import fetch from "node-fetch";
 import logger from "../../lib/logger.js";
 import chalk from "chalk";
 
-export async function fetchPackageMetadata(packageName, spinner, currentPackageIndex, totalPackages, isForce = false) {
-  const url = `https://registry.npmjs.org/${packageName}`;
-  spinner.text = `${isForce ? chalk.bgYellow("FORCE") : ""} [${currentPackageIndex}/${totalPackages}] Fetching metadata for ${packageName}`;
+export async function fetchPackageMetadata(packageNames, spinner, currentPackageIndex, totalPackages, isForce = false) {
+  spinner.text = `${isForce ? chalk.bgYellow("FORCE") : ""} [${currentPackageIndex}/${totalPackages}] Fetching metadata for packages: ${packageNames.join(", ")}`;
 
   try {
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch metadata for ${packageName}`);
-    }
-    const metadata = await response.json();
-    return metadata;
+    const metadataPromises = packageNames.map(async (packageName) => {
+      const url = `https://registry.npmjs.org/${packageName}`;
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch metadata for ${packageName}`);
+      }
+      return response.json();
+    });
+
+    const metadataList = await Promise.all(metadataPromises);
+    return metadataList;
   } catch (error) {
-    spinner.fail(`Failed to fetch metadata for ${packageName}: ${error.message}`);
+    spinner.fail(`Failed to fetch metadata for packages: ${error.message}`);
     logger.logError({
       message: error.message,
       exit: true,

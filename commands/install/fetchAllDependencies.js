@@ -16,9 +16,11 @@ export async function fetchAllDependencies(depName, spinner, packageInfoList, pa
     packageInfoList.push({ ...packageInfo, version: "latest" });
 
     if (packageInfo.dependencies) {
-      for (const subDepName in packageInfo.dependencies) {
-        await fetchAllDependencies(subDepName, spinner, packageInfoList, packages, installDir);
-      }
+      await Promise.all(
+        Object.keys(packageInfo.dependencies).map((subDepName) =>
+          fetchAllDependencies(subDepName, spinner, packageInfoList, packages, installDir)
+        )
+      );
     }
 
     const depInstallDir = join(installDir, "node_modules");
