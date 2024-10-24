@@ -14,7 +14,7 @@
     "lint": "eslint .",
     "format:check": "prettier --check .",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "compile": "deno run --allow-read --allow-write ./scripts/compile.js"
+    "compile": "deno compile --unstable --allow-read --allow-write --allow-net --allow-run --allow-env --output dist/pacm ./core/pacm.js"
   },
   "keywords": [],
   "author": "",
@@ -28,6 +28,7 @@
   },
   "dependencies": {
     "chalk": "^5.3.0",
+    "deno": "^0.1.1",
     "node-fetch": "3.3.2",
     "ora": "^8.1.0",
     "prompts": "^2.4.2",
