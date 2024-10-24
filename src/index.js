@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { argv } from "process";
-import { help, version, init, install, remove } from "./commands/index.js";
+import { help, version, init, install, remove, run, clean } from "./commands/index.js";
 import { link } from "./functions/link.js";
 import { unlink } from "./functions/unlink.js";
 import { update } from "./commands/update.js";
@@ -47,6 +47,12 @@ function main() {
       break;
     case "list":
       list(argv.slice(3));
+      break;
+    case "run":
+      run(argv.slice(3));
+      break;
+    case "clean":
+      clean(argv.slice(3));
       break;
     default:
       console.log('Unknown command. Use "pacm help" for a list of commands.');
