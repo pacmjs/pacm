@@ -25,6 +25,7 @@ export async function installPackage(
   currentPackageIndex = 0,
   totalPackages = 0,
   isForce = false,
+  isRootPackage = false,
 ) {
   if (typeof packageName !== "string" || typeof version !== "string") {
     throw new Error(
@@ -84,7 +85,9 @@ export async function installPackage(
 
   const packageVersion = metadata.versions[maxSatisfyingVersion];
   const tarballUrl = packageVersion.dist.tarball;
-  const packageDir = join(installDir, "node_modules", packageName);
+  const packageDir = isRootPackage
+    ? join(installDir, "node_modules", packageName)
+    : join(installDir, "node_modules", ".pacm", packageName);
   const cachePath = join(
     globalCacheDir,
     packageName.startsWith("@") ? packageName.replace("/", "_") : packageName,
@@ -118,6 +121,7 @@ export async function installPackage(
       currentPackageIndex,
       totalPackages,
       isForce,
+      false,
     );
     if (currentPackageIndex < totalPackages) {
       currentPackageIndex++;
