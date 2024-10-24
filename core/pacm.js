@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { argv } from "process";
+import { argv } from "node:process";
 import {
   help,
   version,
@@ -8,14 +8,14 @@ import {
   remove,
   run,
   clean,
-} from "./commands/index.js";
-import { link } from "./functions/link.js";
-import { unlink } from "./functions/unlink.js";
-import { update } from "./commands/update.js";
-import { list } from "./commands/list.js";
-import checkScriptExists from "./utils/checkScriptExists.js";
-import closestScriptMatch from "./utils/closestScriptMatch.js";
-import logger from "./lib/logger.js";
+} from "../commands/index.js";
+import { link } from "../functions/link.js";
+import { unlink } from "../functions/unlink.js";
+import { update } from "../commands/update.js";
+import { list } from "../commands/list.js";
+import checkScriptExists from "../utils/checkScriptExists.js";
+import closestScriptMatch from "../utils/closestScriptMatch.js";
+import logger from "../lib/logger.js";
 
 function main() {
   const command = argv[2];

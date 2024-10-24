@@ -1,0 +1,26 @@
+{
+  "name": "pacm-new",
+  "version": "1.0.0",
+  "description": "The ultimate javascript package manager",
+  "main": "core/pacm.js",
+  "type": "module",
+  "tasks": {
+    "build": "deno install -f -n pacm core/pacm.js",
+    "jest": "deno test",
+    "format": "deno fmt",
+    "lint": "deno lint",
+    "format:check": "deno fmt --check",
+    "compile": "deno compile --unstable --allow-read --allow-write --allow-net --allow-env --output dist/pacm ./core/pacm.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "imports": {
+    "chalk": "npm:chalk@5.3.0",
+    "node-fetch": "npm:node-fetch@3.3.2",
+    "ora": "npm:ora@8.1.0",
+    "prompts": "npm:prompts@2.4.2",
+    "semver": "npm:semver@7.6.3",
+    "tar": "npm:tar@7.4.3"
+  },
+  "license": "BOWL",
+  "author": "Jonas F. Franke <@binary-blazer>"
+}
