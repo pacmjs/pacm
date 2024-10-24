@@ -6,6 +6,7 @@ import { installPackage } from "./install/installPackage.js";
 import { createLockFile } from "../utils/createLockFile.js";
 import chalk from "chalk";
 import process from "node:process";
+import { fetchAllDependencies } from "./update/fetchAllDependencies.js";
 
 export async function update(args) {
   const packages = [];
@@ -93,6 +94,12 @@ export async function update(args) {
       }
 
       packageInfoList.push({ ...packageInfo, version });
+
+      if (packageInfo.dependencies) {
+        for (const depName in packageInfo.dependencies) {
+          await fetchAllDependencies(depName, spinner, packageInfoList, packages, installDir);
+        }
+      }
     }
 
     const totalPackages = packageInfoList.length;

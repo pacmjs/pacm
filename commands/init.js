@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import prompts from "prompts";
+import { fetchAllDependencies } from "./init/fetchAllDependencies.js";
 
 export default async function init() {
   const args = process.argv.slice(2);

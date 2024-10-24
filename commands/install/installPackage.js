@@ -2,7 +2,7 @@
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import semver from "semver";
-import { fetchPackageMetadata } from "../../utils/fetchPackageMetadata.js";
+import { fetchPackageMetadata } from "./fetchPackageMetadata.js";
 import { downloadAndExtractTarball } from "../../utils/downloadAndExtractTarball.js";
 import { homedir } from "node:os";
 import process from "node:process";

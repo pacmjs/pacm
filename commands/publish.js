@@ -2,6 +2,7 @@
 import { execSync } from "node:child_process";
 import ora from "ora";
 import logger from "../lib/logger.js";
+import { fetchAllDependencies } from "./publish/fetchAllDependencies.js";
 
 export function publish(args) {
   const flags = [];
