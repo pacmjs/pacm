@@ -1,4 +1,4 @@
-import { existsSync, writeFileSync, readFileSync, mkdirSync } from "node:fs";
+import { existsSync, writeFileSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import ora from "ora";
 import { installPackage } from "./installPackage.js";

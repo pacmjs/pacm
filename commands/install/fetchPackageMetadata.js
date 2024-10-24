@@ -1,5 +1,6 @@
 import fetch from "node-fetch";
 import logger from "../../lib/logger.js";
+import chalk from "chalk";
 
 export async function fetchPackageMetadata(packageName, spinner, currentPackageIndex, totalPackages, isForce = false) {
   const url = `https://registry.npmjs.org/${packageName}`;
