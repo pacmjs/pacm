@@ -81,7 +81,7 @@ export async function install(args) {
       }
     }
 
-    const isDevDependency = flags.includes("--save-dev") || flags.includes("-D");
+    const isDevDependency = flags.includes("--dev") || flags.includes("-D");
     const isForce = flags.includes("--force") || flags.includes("-f");
 
     const packageInfoList = [];

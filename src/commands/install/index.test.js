@@ -214,7 +214,7 @@ describe("install", () => {
     );
   });
 
-  it("should install devDependencies with --save-dev flag", async () => {
+  it("should install devDependencies with --dev flag", async () => {
     const packageJsonData = {
       devDependencies: {
         jest: "29.7.0",
@@ -223,7 +223,7 @@ describe("install", () => {
 
     writeFileSync(packageJsonPath, JSON.stringify(packageJsonData, null, 2));
 
-    await install(["--save-dev"]);
+    await install(["--dev"]);
 
     expect(require("./installPackage.js").installPackage).toHaveBeenCalledWith(
       expect.anything(),
@@ -258,7 +258,7 @@ describe("install", () => {
     );
   });
 
-  it("should save packages as devDependencies when --save-dev flag is used", async () => {
+  it("should save packages as devDependencies when --dev flag is used", async () => {
     const packageJsonData = {
       dependencies: {},
       devDependencies: {},
@@ -266,7 +266,7 @@ describe("install", () => {
 
     writeFileSync(packageJsonPath, JSON.stringify(packageJsonData, null, 2));
 
-    await install(["axios@1.7.7", "--save-dev"]);
+    await install(["axios@1.7.7", "--dev"]);
 
     const updatedPackageJson = JSON.parse(
       readFileSync(packageJsonPath, "utf-8"),
