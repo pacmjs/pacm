@@ -1,4 +1,4 @@
-import { existsSync, writeFileSync, readFileSync } from "node:fs";
+import { existsSync, writeFileSync, readFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import ora from "ora";
 import { installPackage } from "./installPackage.js";
@@ -8,7 +8,7 @@ import { fetchPackageMetadata } from "../../utils/fetchPackageMetadata.js";
 import process from "node:process";
 import chalk from "chalk";
 
-async function fetchAllDependencies(depName, spinner, packageInfoList, packages) {
+async function fetchAllDependencies(depName, spinner, packageInfoList, packages, installDir) {
   if (!packages.includes(depName)) {
     packages.push(depName);
     const packageInfo = await fetchPackageMetadata(
@@ -22,9 +22,26 @@ async function fetchAllDependencies(depName, spinner, packageInfoList, packages)
 
     if (packageInfo.dependencies) {
       for (const subDepName in packageInfo.dependencies) {
-        await fetchAllDependencies(subDepName, spinner, packageInfoList, packages);
+        await fetchAllDependencies(subDepName, spinner, packageInfoList, packages, installDir);
       }
     }
+
+    const depInstallDir = join(installDir, "node_modules", ".pacm");
+    if (!existsSync(depInstallDir)) {
+      mkdirSync(depInstallDir, { recursive: true });
+    }
+    await installPackage(
+      spinner,
+      depName,
+      "latest",
+      depInstallDir,
+      [],
+      { dependencies: {}, devDependencies: {} },
+      false,
+      0,
+      0,
+      false
+    );
   }
 }
 
@@ -117,7 +134,7 @@ export async function install(args) {
 
       if (packageInfo.dependencies) {
         for (const depName in packageInfo.dependencies) {
-          await fetchAllDependencies(depName, spinner, packageInfoList, packages);
+          await fetchAllDependencies(depName, spinner, packageInfoList, packages, installDir);
         }
       }
     }
