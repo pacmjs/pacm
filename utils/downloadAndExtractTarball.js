@@ -10,7 +10,6 @@ import fetch from "node-fetch";
 import { x as extract } from "tar";
 import { retryOnECONNRESET } from "./retry.js";
 import chalk from "chalk";
-import logger from "../lib/logger.js";
 
 export async function downloadAndExtractTarball(
   url,

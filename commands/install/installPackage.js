@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import semver from "semver";

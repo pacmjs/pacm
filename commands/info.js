@@ -1,6 +1,7 @@
 import logger from "../lib/logger.js";
 import ora from "ora";
 import process from "node:process";
+import fetch from "node-fetch";
 
 export async function info(args) {
   const packageName = args[0];

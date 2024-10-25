@@ -1,6 +1,7 @@
 import logger from "../lib/logger.js";
 import process from "node:process";
 import ora from "ora";
+import fetch from "node-fetch";
 
 export async function search(args) {
   const query = args.join(" ");

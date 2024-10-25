@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import logger from "../lib/logger.js";
 import { fetchPackageMetadata } from "../utils/fetchPackageMetadata.js";
 import ora from "ora";
