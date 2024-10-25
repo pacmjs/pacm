@@ -4,12 +4,17 @@ import boxen from "boxen";
 export default function UpdateCheck() {
   return new Promise((resolve) => {
     const repo = "pacmjs/pacm";
-    const version = "1.0.0";
+    const version = "v1.0.0";
     const url = `https://api.github.com/repos/${repo}/releases/latest`;
 
     fetch(url)
       .then((res) => res.json())
       .then((json) => {
+        if (json.message === "Not Found") {
+          resolve();
+          return;
+        }
+
         if (json.tag_name !== version) {
           const updateMessage = `
 ${chalk.bgYellow.whiteBright(" Update available! \n")}
