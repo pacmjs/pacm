@@ -111,6 +111,23 @@ jobs:
           id: find-macos-asset
           run: echo "FILE_PATH=$(find ./dist-macos -type f)" >> $GITHUB_ENV
 
+        - name: Rename Windows release asset
+          run: |
+            mv ${{ env.FILE_PATH }} ./dist-windows/pacm.exe
+            echo "FILE_PATH=./dist-windows/pacm.exe" >> $GITHUB_ENV
+
+        - name: Rename Linux release asset
+          run: |
+            mv ${{ env.FILE_PATH }} ./dist-linux/pacm
+            chmod +x ./dist-linux/pacm
+            echo "FILE_PATH=./dist-linux/pacm" >> $GITHUB_ENV
+
+        - name: Rename macOS release asset
+          run: |
+            mv ${{ env.FILE_PATH }} ./dist-macos/pacm
+            chmod +x ./dist-macos/pacm
+            echo "FILE_PATH=./dist-macos/pacm" >> $GITHUB_ENV
+
         - name: Upload Windows release asset
           uses: actions/upload-release-asset@v1
           env:
@@ -118,7 +135,7 @@ jobs:
           with:
             upload_url: ${{ github.event.release.upload_url }}
             asset_path: ${{ env.FILE_PATH }}
-            asset_name: dist-windows
+            asset_name: pacm.exe
             asset_content_type: application/octet-stream
 
         - name: Upload Linux release asset
@@ -128,7 +145,7 @@ jobs:
           with:
             upload_url: ${{ github.event.release.upload_url }}
             asset_path: ${{ env.FILE_PATH }}
-            asset_name: dist-linux
+            asset_name: pacm
             asset_content_type: application/octet-stream
 
         - name: Upload macOS release asset
@@ -138,5 +155,5 @@ jobs:
           with:
             upload_url: ${{ github.event.release.upload_url }}
             asset_path: ${{ env.FILE_PATH }}
-            asset_name: dist-macos
+            asset_name: pacm
             asset_content_type: application/octet-stream
