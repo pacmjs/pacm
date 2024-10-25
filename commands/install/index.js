@@ -1,4 +1,4 @@
-import { existsSync, writeFileSync, readFileSync, read } from "node:fs";
+import { existsSync, writeFileSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import ora from "ora";
 import { installPackage } from "./installPackage.js";
@@ -62,13 +62,16 @@ export async function install(args) {
   try {
     if (packages.length === 0) {
       if (existsSync(lockFilePath)) {
-        packages.push(...Object.keys(lockFileData.dependencies));
-        packages.push(...Object.keys(lockFileData.devDependencies));
+        const allDependencies = { ...lockFileData.dependencies, ...lockFileData.devDependencies };
+        const nonDependencyPackages = Object.keys(allDependencies).filter(pkg => {
+          return !Object.values(allDependencies).some(dep => dep.dependencies && dep.dependencies[pkg]);
+        });
+        packages.push(...nonDependencyPackages);
       } else if (existsSync(packageJsonPath)) {
         packages.push(...Object.keys(packageJson.dependencies));
         packages.push(...Object.keys(packageJson.devDependencies));
       } else {
-        throw new Error("No packages to install.");
+        throw new Error("No packages to install");
       }
     }
 

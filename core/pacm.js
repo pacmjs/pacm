@@ -100,6 +100,10 @@ function main() {
       info(argv.slice(3));
       break;
     default:
+      if (argv === undefined || argv.length === 0 || argv[2] === undefined || argv[2] === "") {
+        return help();
+      }
+
       const scriptExists = checkScriptExists(command);
       if (scriptExists) {
         run([command, ...argv.slice(3)]);
