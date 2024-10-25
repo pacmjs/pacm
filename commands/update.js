@@ -7,6 +7,7 @@ import { createLockFile } from "../utils/createLockFile.js";
 import chalk from "chalk";
 import process from "node:process";
 import { fetchAllDependencies } from "./update/fetchAllDependencies.js";
+import logger from "../lib/logger.js";
 
 export async function update(args) {
   const packages = [];
@@ -26,6 +27,7 @@ export async function update(args) {
   const lockFilePath = join(installDir, "pacm.lockp");
   let packageJson = {};
   let lockFileData = { dependencies: {}, devDependencies: {} };
+  let notInstalledPackages = [];
 
   if (existsSync(packageJsonPath)) {
     packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8"));
@@ -68,6 +70,11 @@ export async function update(args) {
     for (const pkg of packages) {
       let packageName, version;
 
+      if (!packageJson.dependencies[pkg] && !packageJson.devDependencies[pkg]) {
+        notInstalledPackages.push(pkg);
+        continue;
+      }
+
       if (pkg.startsWith("@")) {
         const atIndex = pkg.indexOf("@", 1);
         if (atIndex === -1) {
@@ -109,6 +116,11 @@ export async function update(args) {
 
     for (const pkgInfo of packageInfoList) {
       const { name: packageName, version } = pkgInfo;
+
+      if (notInstalledPackages.includes(packageName)) {
+        spinner.text = `[${currentPackageIndex}/${totalPackages}] Package not installed: ${packageName}, skipping.`;
+        continue;
+      }
 
       if (!isForce) {
         const nodeModulesDir = join(installDir, "node_modules", packageName);
@@ -178,9 +190,15 @@ export async function update(args) {
 
     spinner.succeed(`Packages updated successfully in ${durationText}.`);
     if (alreadyUpdatedPackages.length > 0)
-      console.log(
-        `\n\n${chalk.bgYellow("Packages already up-to-date")} ${alreadyUpdatedPackages.join(", ")}`,
-      );
+      logger.logWarning({
+        message: `Packages already up-to-date: ${alreadyUpdatedPackages.join(", ")}`,
+        warningType: " PACM_UPDATE_ALREADY_UP_TO_DATE ",
+      });
+    if (notInstalledPackages.length > 0)
+      logger.logWarning({
+        message: `Packages not installed: ${notInstalledPackages.join(", ")}`,
+        warningType: " PACM_UPDATE_NOT_INSTALLED ",
+      });
   } catch (error) {
     spinner.fail(`Update failed: ${error.message}`);
     console.error(error);
