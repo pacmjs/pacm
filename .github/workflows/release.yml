@@ -1,0 +1,98 @@
+name: Release
+
+on:
+    release:
+        types: [created]
+
+jobs:
+    release:
+        runs-on: ubuntu-latest
+
+        steps:
+        - name: Checkout repository
+          uses: actions/checkout@v2
+
+        - name: Set up Deno
+          uses: denoland/setup-deno@v1
+          with:
+            deno-version: v1.x
+
+        - name: Set up Node.js
+          uses: actions/setup-node@v2
+          with:
+            node-version: '22'
+
+        - name: Install Deno dependencies
+          run: deno install
+
+    build-windows:
+        runs-on: windows-latest
+
+        steps:
+        - name: Checkout repository
+          uses: actions/checkout@v2
+
+        - name: Set up Deno
+          uses: denoland/setup-deno@v1
+          with:
+            deno-version: v1.x
+
+        - name: Install Deno dependencies
+          run: deno install
+
+        - name: Run compile
+          run: deno run compile
+
+        - name: Upload compiled files
+          uses: actions/upload-artifact@v2
+          with:
+            name: dist-windows
+            path: dist/
+
+    build-linux:
+        runs-on: ubuntu-latest
+
+        steps:
+        - name: Checkout repository
+          uses: actions/checkout@v2
+
+        - name: Set up Deno
+          uses: denoland/setup-deno@v1
+          with:
+            deno-version: v1.x
+
+        - name: Install Deno dependencies
+          run: deno install
+
+        - name: Run compile
+          run: deno run compile
+
+        - name: Upload compiled files
+          uses: actions/upload-artifact@v2
+          with:
+            name: dist-linux
+            path: dist/
+
+    build-macos:
+        runs-on: macos-latest
+
+        steps:
+        - name: Checkout repository
+          uses: actions/checkout@v2
+
+        - name: Set up Deno
+          uses: denoland/setup-deno@v1
+          with:
+            deno-version: v1.x
+
+        - name: Install Deno dependencies
+          run: deno install
+
+        - name: Run compile
+          run: deno run compile
+
+        - name: Upload compiled files
+          uses: actions/upload-artifact@v2
+          with:
+            name: dist-macos
+            path: dist/
