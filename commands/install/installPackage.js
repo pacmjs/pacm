@@ -7,6 +7,7 @@ import { downloadAndExtractTarball } from "../../utils/downloadAndExtractTarball
 import { homedir } from "node:os";
 import process from "node:process";
 import chalk from "chalk";
+import logger from "../../lib/logger.js";
 
 const globalCacheDir = join(homedir(), ".pacm-cache");
 
@@ -28,15 +29,19 @@ export async function installPackage(
   isRootPackage = false,
 ) {
   if (typeof packageName !== "string" || typeof version !== "string") {
-    throw new Error(
-      "[ERRNO1] Invalid packageName or version. Both must be strings.",
-    );
+    logger.logError({
+      message: "Invalid package name or version. Both must be strings.",
+      exit: true,
+      errorType: " PACM_INVALID_PACKAGE_NAME_OR_VERSION ",
+    });
   }
 
   if (!packageName || !version) {
-    throw new Error(
-      "[ERRNO2] Invalid packageName or version. Both must be defined.",
-    );
+    logger.logError({
+      message: "Package name and version are required.",
+      exit: true,
+      errorType: " PACM_PACKAGE_NAME_AND_VERSION_REQUIRED ",
+    });
   }
 
   let metadata;
@@ -52,7 +57,11 @@ export async function installPackage(
     );
     versionToInstall = npmVersion || metadata["dist-tags"].latest;
   } else if (version && version.startsWith("github:")) {
-    throw new Error("GitHub packages are not supported yet");
+    logger.logError({
+      message: "GitHub packages are not supported yet.",
+      exit: true,
+      errorType: " PACM_GITHUB_PACKAGES_NOT_SUPPORTED ",
+    });
   } else {
     metadata = await fetchPackageMetadata(
       packageName,
@@ -102,6 +111,8 @@ export async function installPackage(
       cachePath,
       spinner,
       isForce,
+      currentPackageIndex,
+      totalPackages,
     );
   }
 

@@ -10,6 +10,15 @@ export const remove = async (args) => {
   const flags = [];
   const notInstalledPackages = [];
   const initiallyInstalledPackages = new Set();
+  let lockfileDeleted = false;
+
+  if (args.length === 0) {
+    logger.logError({
+      message: "Please provide the package name(s) to remove",
+      exit: true,
+      errorType: " PACM_REMOVAL_ERROR ",
+    });
+  }
 
   args.forEach((arg) => {
     if (arg.startsWith("-")) {
@@ -65,6 +74,7 @@ export const remove = async (args) => {
     const latestVersion = packageInfo["dist-tags"].latest;
     const dependencies = packageInfo.versions[latestVersion].dependencies || {};
 
+    try {
     if (packageJson.dependencies[pkg]) {
       delete packageJson.dependencies[pkg];
     } else if (packageJson.devDependencies[pkg]) {
@@ -77,6 +87,15 @@ export const remove = async (args) => {
       delete lockFileData.dependencies[pkg];
     } else if (lockFileData.devDependencies[pkg]) {
       delete lockFileData.devDependencies[pkg];
+    }
+    } catch (error) {
+      spinner.stop();
+
+      logger.logError({
+        message: `Package ${pkg} is not installed`,
+        exit: true,
+        errorType: " PACM_REMOVAL_ERROR ",
+      });
     }
 
     if (existsSync(join(installDir, "node_modules", pkg))) {
@@ -92,6 +111,32 @@ export const remove = async (args) => {
     spinner.text = `Removing ${pkg}`;
     await removeAllDependencies(pkg);
   }
+
+  if (Object.keys(packageJson.dependencies).length === 0) {
+    delete packageJson.dependencies;
+  }
+
+  if (Object.keys(packageJson.devDependencies).length === 0) {
+    delete packageJson.devDependencies;
+  }
+
+  if (Object.keys(lockFileData.dependencies).length === 0) {
+    delete lockFileData.dependencies;
+  }
+
+  if (Object.keys(lockFileData.devDependencies).length === 0) {
+    delete lockFileData.devDependencies;
+  }
+
+  if (fs.existsSync(join(installDir, "node_modules"))) {
+    const nodeModules = fs.readdirSync(join(installDir, "node_modules"));
+    if (nodeModules.length === 0) {
+      fs.rmdirSync(join(installDir, "node_modules"));
+    }
+  }
+
+  writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
+  if (!lockfileDeleted) writeFileSync(lockFilePath, JSON.stringify(lockFileData, null, 2));
 
   spinner.succeed(`Completed package${packages.length > 1 ? "s" : ""} removal`);
   if (notInstalledPackages.length > 0) {

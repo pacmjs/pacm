@@ -1,4 +1,4 @@
-import { existsSync, writeFileSync, readFileSync } from "node:fs";
+import { existsSync, writeFileSync, readFileSync, read } from "node:fs";
 import { join } from "node:path";
 import ora from "ora";
 import { installPackage } from "./installPackage.js";
@@ -7,6 +7,7 @@ import { createLockFile } from "../../utils/createLockFile.js";
 import { fetchPackageMetadata } from "../../utils/fetchPackageMetadata.js";
 import process from "node:process";
 import chalk from "chalk";
+import logger from "../../lib/logger.js";
 import { fetchAllDependencies } from "./fetchAllDependencies.js";
 
 export async function install(args) {
@@ -43,7 +44,16 @@ export async function install(args) {
   }
 
   if (existsSync(lockFilePath)) {
-    lockFileData = JSON.parse(readFileSync(lockFilePath, "utf-8"));
+    if (
+      readFileSync(lockFilePath, "utf-8") === "" ||
+      readFileSync(lockFilePath, "utf-8") === "{}" ||
+      readFileSync(lockFilePath, "utf-8") === "{\n}" ||
+      readFileSync(lockFilePath, "utf-8") === "{\n}\n"
+    ) {
+      lockFileData = { dependencies: {}, devDependencies: {} };
+    } else {
+      lockFileData = JSON.parse(readFileSync(lockFilePath, "utf-8"));
+    }
   }
 
   const spinner = ora("[0/0] Fetching package information").start();
@@ -197,10 +207,19 @@ export async function install(args) {
     const duration = endTime - startTime;
     const durationText = duration < 1000 ? `${duration} ms` : `${(duration / 1000).toFixed(2)} seconds`;
 
-    spinner.succeed(`Packages installed successfully in ${durationText}.`);
+    spinner.stop();
+    logger.logSuccess({
+      message: `Successfully installed ${packages.length} packages in ${durationText}`,
+      successType: " PACM_INSTALL_SUCCESS ",
+    });
     if (alreadyInstalledPackages.length > 0) console.log(`\n\n${chalk.bgYellow("Packages already installed")} ${alreadyInstalledPackages.join(", ")}`);
   } catch (error) {
-    spinner.fail(`Installation failed: ${error.message}`);
+    spinner.stop();
+    logger.logError({
+      message: error.stack,
+      exit: true,
+      errorType: " PACM_ERROR ",
+    })
     console.error(error);
   }
 }

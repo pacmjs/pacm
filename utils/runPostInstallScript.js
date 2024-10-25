@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { exec } from "node:child_process";
+import logger from "../lib/logger.js";
 
 export async function runPostInstallScript(packageDir, spinner) {
   const packageJsonPath = join(packageDir, "package.json");
@@ -14,14 +15,17 @@ export async function runPostInstallScript(packageDir, spinner) {
           { cwd: packageDir },
           (error, stdout, stderr) => {
             if (error) {
-              console.error(
-                `Error running postinstall script for ${packageJson.name}: ${stderr}`,
-              );
+              logger.logError({
+                message: `Failed to run postinstall script for ${packageJson.name}`,
+                exit: false,
+                errorType: " PACM_POSTINSTALL_SCRIPT_FAILED ",
+              });
               reject(error);
             } else {
-              console.log(
-                `Postinstall script output for ${packageJson.name}: ${stdout}`,
-              );
+              logger.logSuccess({
+                message: `Successfully ran postinstall script for ${packageJson.name}`,
+                successType: " PACM_POSTINSTALL_SCRIPT_SUCCESS ",
+              });
               resolve();
             }
           },

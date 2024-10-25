@@ -3,6 +3,7 @@
   "specifiers": {
     "npm:@eslint/js@^9.12.0": "9.13.0",
     "npm:chalk@^5.3.0": "5.3.0",
+    "npm:deno@~0.1.1": "0.1.1",
     "npm:eslint@^9.12.0": "9.13.0",
     "npm:globals@^15.11.0": "15.11.0",
     "npm:jest@^29.7.0": "29.7.0",
@@ -938,6 +939,12 @@
         "which"
       ]
     },
+    "dafo@0.1.1": {
+      "integrity": "sha512-18XhtDt5qQ5pAfWzo1t3mRXQPanY8diFQFjCxh+/0mko5QHztCv6oLgPL9kKxB8aeYutp8lWC7BqjGzC8GWX1w==",
+      "dependencies": [
+        "noda@0.1.2"
+      ]
+    },
     "data-uri-to-buffer@4.0.1": {
       "integrity": "sha512-0R9ikRb668HB7QDxT1vkpuUBtqc53YyAwMwGeUFKRojY/NWKvdZ+9UYtRfGmhqNbRkTSVpMbmyhXipFFv2cb/A=="
     },
@@ -955,6 +962,14 @@
     },
     "deepmerge@4.3.1": {
       "integrity": "sha512-3sUqbMEc77XqpdNO7FRyRog+eW3ph+GYCbj+rK+uYyRMuwsVy0rMiVtPn+QJlKFvWP/1PYpapqYn0Me2knFn+A=="
+    },
+    "deno@0.1.1": {
+      "integrity": "sha512-vdXCOZOXXgRUFPIV2HbyBBT+u1TjKmDueCEJuk9Q+ADLS7jmVfdfGxp0vI5o/gOjbA1OwOYMVfg249+9vjYa7w==",
+      "dependencies": [
+        "dafo",
+        "noda@0.6.0",
+        "qir"
+      ]
     },
     "detect-newline@3.1.0": {
       "integrity": "sha512-TLz+x/vEXm/Y7P7wn1EJFNLxYpUD4TgMosxY6fAVJUnJMbupHBOncxyWUG9OpTaH9EBD7uFI5LfEgmMOc54DsA=="
@@ -1890,6 +1905,12 @@
     "natural-compare@1.4.0": {
       "integrity": "sha512-OWND8ei3VtNC9h7V60qff3SVobHr996CTwgxubgyQYEpg290h9J0buyECNNJexkFm5sOajh5G116RYA1c8ZMSw=="
     },
+    "noda@0.1.2": {
+      "integrity": "sha512-oP5xzQsC4dujsuRlshsnb2R+0BWJmPRJx8MXQlTgbrSSqi5Szeu67Lr8Od1/lkc+8evLPRDmHl9L0xeVJYRGaw=="
+    },
+    "noda@0.6.0": {
+      "integrity": "sha512-Zj3eTQ1cL83zGvorxbGmeqNnt/h+2nH3jT/XLI2oXHL9LH6IKoPvFh6feT1e/yFhRRByP3Q+waM+2dcXIdZkqg=="
+    },
     "node-domexception@1.0.0": {
       "integrity": "sha512-/jKZoMpw0F8GRwl4/eLROPA3cfcXtLApP0QzLmUT/HuPCZWyB7IY9ZrMeKw2O/nFIqPQB3PVM9aYm0F312AXDQ=="
     },
@@ -2064,6 +2085,12 @@
     },
     "pure-rand@6.1.0": {
       "integrity": "sha512-bVWawvoZoBYpp6yIoQtQXHZjmz35RSVHnUOTefl8Vcjr8snTPY1wnpSPMWekcFwbxI6gtmT7rSYPFvz71ldiOA=="
+    },
+    "qir@0.1.0": {
+      "integrity": "sha512-LJUKDMyPsaog5uDarzqterz+SfdyA3mfvq45kSLV0X5IOSPy/nlueKvLg8nClOSKp57c1E0bU/BFHwHFUoVhcw==",
+      "dependencies": [
+        "noda@0.6.0"
+      ]
     },
     "react-is@18.3.1": {
       "integrity": "sha512-/LLMVyas0ljjAtoYiPqYiL8VWXzUUdThrmU5+n20DZv+a+ClRoevUzw5JxU+Ieh5/c87ytoTBV9G1FiKfNJdmg=="

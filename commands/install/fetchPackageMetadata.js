@@ -9,7 +9,12 @@ export async function fetchPackageMetadata(packageName, spinner, currentPackageI
   try {
     const response = await fetch(url);
     if (!response.ok) {
-      throw new Error(`Failed to fetch metadata for ${packageName}`);
+      spinner.stop();
+      logger.logError({
+        message: response.statusText,
+        exit: true,
+        errorType: " PACM_FETCH_METADATA_ERROR ",
+      });
     }
     const metadata = await response.json();
     return metadata;

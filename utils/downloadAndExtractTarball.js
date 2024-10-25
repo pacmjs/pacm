@@ -17,9 +17,11 @@ export async function downloadAndExtractTarball(
   cachePath,
   spinner,
   isForce,
+  currentPackageIndex,
+  totalPackages,
 ) {
   if (existsSync(cachePath)) {
-    spinner.text = `${isForce ? chalk.bgYellow("FORCE") : ""} Extracting ${cachePath} to ${dest}`;
+    spinner.text = `${isForce ? chalk.bgYellow("FORCE") : ""} [${currentPackageIndex}/${totalPackages}] Extracting ${cachePath} to ${dest}`;
     await extract({ file: cachePath, cwd: dest, strip: 1 });
   } else {
     const tempPath = join(
@@ -28,7 +30,7 @@ export async function downloadAndExtractTarball(
     );
     return retryOnECONNRESET(
       async (url, dest) => {
-        spinner.text = `${isForce ? chalk.bgYellow("FORCE") : ""} Downloading tarball from ${url}`;
+        spinner.text = `${isForce ? chalk.bgYellow("FORCE") : ""} [${currentPackageIndex}/${totalPackages}] Downloading tarball from ${url}`;
         const response = await fetch(url);
         if (!response.ok) {
           throw new Error(`Failed to download tarball from ${url}`);
@@ -40,13 +42,13 @@ export async function downloadAndExtractTarball(
             .on("finish", resolve)
             .on("error", reject);
           fileStream.on("finish", () => {
-            spinner.text = `${isForce ? chalk.bgYellow("FORCE") : ""} Writing cache to ${cachePath}`;
+            spinner.text = `${isForce ? chalk.bgYellow("FORCE") : ""} [${currentPackageIndex}/${totalPackages}] Writing cache to ${cachePath}`;
             const cacheDir = dirname(cachePath);
             if (!existsSync(cacheDir)) {
               mkdirSync(cacheDir, { recursive: true });
             }
             copyFileSync(tempPath, cachePath);
-            spinner.text = `${isForce ? chalk.bgYellow("FORCE") : ""} Extracting ${tempPath} to ${dest}`;
+            spinner.text = `${isForce ? chalk.bgYellow("FORCE") : ""} [${currentPackageIndex}/${totalPackages}] Extracting ${tempPath} to ${dest}`;
             extract({ file: tempPath, cwd: dest, strip: 1 })
               .then(resolve)
               .catch(reject);
