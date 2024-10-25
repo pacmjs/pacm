@@ -114,6 +114,22 @@ export async function installPackage(
       currentPackageIndex,
       totalPackages,
     );
+  } else {
+    const packageJsonPath = join(packageDir, "package.json");
+    const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8"));
+    const installedVersion = packageJson.version;
+
+    if (installedVersion !== maxSatisfyingVersion) {
+      await downloadAndExtractTarball(
+        tarballUrl,
+        packageDir,
+        cachePath,
+        spinner,
+        isForce,
+        currentPackageIndex,
+        totalPackages,
+      );
+    }
   }
 
   const dependencies = metadata.versions[maxSatisfyingVersion].dependencies || {};
