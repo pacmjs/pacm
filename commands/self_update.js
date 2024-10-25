@@ -4,6 +4,14 @@ import process from "node:process";
 import { exec } from "node:child_process";
 
 export default function self_update(args) {
+    if (process.getuid && process.getuid() !== 0) {
+        logger.logError({
+            message: "This command requires admin privileges.",
+            exit: true,
+            errorType: " PACM_PERMISSION_ERROR ",
+        });
+    }
+
     if (args.length > 0) {
         logger.logError({
             message: "This command does not take any arguments.",
