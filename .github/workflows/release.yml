@@ -99,35 +99,32 @@ jobs:
             name: dist-macos
             path: ./dist-macos
 
-        - name: Compress Windows artifact
-          run: zip -r dist-windows.zip ./dist-windows
-
-        - name: Compress Linux artifact
-          run: zip -r dist-linux.zip ./dist-linux
-
-        - name: Compress macOS artifact
-          run: zip -r dist-macos.zip ./dist-macos
-
         - name: Upload Windows release asset
           uses: actions/upload-release-asset@v1
+          env:
+            GITHUB_TOKEN: ${{ secrets.PAT }}
           with:
             upload_url: ${{ github.event.release.upload_url }}
-            asset_path: ./dist-windows.zip
-            asset_name: dist-windows.zip
-            asset_content_type: application/zip
+            asset_path: ./dist-windows
+            asset_name: dist-windows
+            asset_content_type: application/octet-stream
 
         - name: Upload Linux release asset
           uses: actions/upload-release-asset@v1
+          env:
+            GITHUB_TOKEN: ${{ secrets.PAT }}
           with:
             upload_url: ${{ github.event.release.upload_url }}
-            asset_path: ./dist-linux.zip
-            asset_name: dist-linux.zip
-            asset_content_type: application/zip
+            asset_path: ./dist-linux
+            asset_name: dist-linux
+            asset_content_type: application/octet-stream
 
         - name: Upload macOS release asset
           uses: actions/upload-release-asset@v1
+          env:
+            GITHUB_TOKEN: ${{ secrets.PAT }}
           with:
             upload_url: ${{ github.event.release.upload_url }}
-            asset_path: ./dist-macos.zip
-            asset_name: dist-macos.zip
-            asset_content_type: application/zip
+            asset_path: ./dist-macos
+            asset_name: dist-macos
+            asset_content_type: application/octet-stream
