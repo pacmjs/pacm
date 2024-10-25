@@ -1,5 +1,6 @@
 import chalk from "chalk";
 import boxen from "boxen";
+import fetch from "node-fetch";
 
 export default function UpdateCheck() {
   return new Promise((resolve) => {
