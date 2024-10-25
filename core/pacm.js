@@ -12,6 +12,7 @@ import {
   publish,
   search,
   info,
+  self_update
 } from "../commands/index.js";
 import { update } from "../commands/update.js";
 import { list } from "../commands/list.js";
@@ -76,6 +77,9 @@ function main() {
       break;*/
     case "update":
       update(argv.slice(3));
+      break;
+    case "self-update":
+      self_update(argv.slice(3));
       break;
     case "list":
       list(argv.slice(3));

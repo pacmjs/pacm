@@ -52,9 +52,9 @@
       "integrity": "sha512-gew4GsXizNgdoRyqmyfMHyAmXsZDk6mHkSxZFCzW9gwlbtOW44CDtYavM+y+72qD/Vq2l550kMF52DT8fOLJqQ=="
     },
     "axios": {
-      "version": "1.7.6",
-      "resolved": "https://registry.npmjs.org/axios/-/axios-1.7.6.tgz",
-      "integrity": "sha512-Ekur6XDwhnJ5RgOCaxFnXyqlPALI3rVeukZMwOdfghW7/wGz784BYKiQq+QD8NPcr91KRo30KfHOchyijwWw7g==",
+      "version": "1.7.7",
+      "resolved": "https://registry.npmjs.org/axios/-/axios-1.7.7.tgz",
+      "integrity": "sha512-S4kL7XrjgBmvdGut0sN3yJxqYzrDOnivkBiN0OFs6hLiUam3UPvswUo0kqGyhqUZGEOytHyumEdXsAkgCOUf3Q==",
       "dependencies": {
         "form-data": "^4.0.0",
         "proxy-from-env": "^1.1.0",

@@ -8,6 +8,7 @@ import { clean } from "./clean.js";
 import { publish } from "./publish.js";
 import { search } from "./search.js";
 import { info } from "./info.js";
+import self_update from "./self_update.js";
 
 export {
   help,
@@ -20,4 +21,5 @@ export {
   publish,
   search,
   info,
+  self_update,
 };
