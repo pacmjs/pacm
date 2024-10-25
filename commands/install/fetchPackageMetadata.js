@@ -2,7 +2,13 @@ import fetch from "node-fetch";
 import logger from "../../lib/logger.js";
 import chalk from "chalk";
 
-export async function fetchPackageMetadata(packageName, spinner, currentPackageIndex, totalPackages, isForce = false) {
+export async function fetchPackageMetadata(
+  packageName,
+  spinner,
+  currentPackageIndex,
+  totalPackages,
+  isForce = false,
+) {
   const url = `https://registry.npmjs.org/${packageName}`;
   spinner.text = `${isForce ? chalk.bgYellow("FORCE") : ""} [${currentPackageIndex}/${totalPackages}] Fetching metadata for ${packageName}`;
 
@@ -19,7 +25,9 @@ export async function fetchPackageMetadata(packageName, spinner, currentPackageI
     const metadata = await response.json();
     return metadata;
   } catch (error) {
-    spinner.fail(`Failed to fetch metadata for ${packageName}: ${error.message}`);
+    spinner.fail(
+      `Failed to fetch metadata for ${packageName}: ${error.message}`,
+    );
     logger.logError({
       message: error.message,
       exit: true,

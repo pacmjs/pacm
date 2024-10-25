@@ -27,6 +27,7 @@
     "prettier": "^3.3.3"
   },
   "dependencies": {
+    "boxen": "^8.0.1",
     "chalk": "^5.3.0",
     "deno": "^0.1.1",
     "node-fetch": "3.3.2",

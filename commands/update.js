@@ -104,7 +104,13 @@ export async function update(args) {
 
       if (packageInfo.dependencies) {
         for (const depName in packageInfo.dependencies) {
-          await fetchAllDependencies(depName, spinner, packageInfoList, packages, installDir);
+          await fetchAllDependencies(
+            depName,
+            spinner,
+            packageInfoList,
+            packages,
+            installDir,
+          );
         }
       }
     }

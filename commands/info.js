@@ -18,7 +18,9 @@ export async function info(args) {
   const spinner = ora("Fetching package info").start();
 
   try {
-    const response = await fetch(`https://registry.npmjs.org/${version ? name + "/" + version : name}`);
+    const response = await fetch(
+      `https://registry.npmjs.org/${version ? name + "/" + version : name}`,
+    );
     const data = await response.json();
 
     spinner.stop();

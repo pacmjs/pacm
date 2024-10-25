@@ -91,8 +91,8 @@ If the command is not found in the `scripts` section, an error message will be d
 
 Pacm also supports the following command aliases:
 
--   `i` as an alias for `install`
--   `rm` as an alias for `remove`
+- `i` as an alias for `install`
+- `rm` as an alias for `remove`
 
 ## Contributing
 

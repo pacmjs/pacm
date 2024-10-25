@@ -3,21 +3,33 @@ import { join } from "node:path";
 import { fetchPackageMetadata } from "../../utils/fetchPackageMetadata.js";
 import { installPackage } from "../install/installPackage.js";
 
-export async function fetchAllDependencies(depName, spinner, packageInfoList, packages, installDir) {
+export async function fetchAllDependencies(
+  depName,
+  spinner,
+  packageInfoList,
+  packages,
+  installDir,
+) {
   if (!packages.includes(depName)) {
     packages.push(depName);
     const packageInfo = await fetchPackageMetadata(
       depName,
       spinner,
       packageInfoList.length + 1,
-      packages.length
+      packages.length,
     );
 
     packageInfoList.push({ ...packageInfo, version: "latest" });
 
     if (packageInfo.dependencies) {
       for (const subDepName in packageInfo.dependencies) {
-        await fetchAllDependencies(subDepName, spinner, packageInfoList, packages, installDir);
+        await fetchAllDependencies(
+          subDepName,
+          spinner,
+          packageInfoList,
+          packages,
+          installDir,
+        );
       }
     }
 
@@ -35,7 +47,7 @@ export async function fetchAllDependencies(depName, spinner, packageInfoList, pa
       false,
       0,
       0,
-      false
+      false,
     );
   }
 }

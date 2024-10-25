@@ -62,10 +62,17 @@ export async function install(args) {
   try {
     if (packages.length === 0) {
       if (existsSync(lockFilePath)) {
-        const allDependencies = { ...lockFileData.dependencies, ...lockFileData.devDependencies };
-        const nonDependencyPackages = Object.keys(allDependencies).filter(pkg => {
-          return !Object.values(allDependencies).some(dep => dep.dependencies && dep.dependencies[pkg]);
-        });
+        const allDependencies = {
+          ...lockFileData.dependencies,
+          ...lockFileData.devDependencies,
+        };
+        const nonDependencyPackages = Object.keys(allDependencies).filter(
+          (pkg) => {
+            return !Object.values(allDependencies).some(
+              (dep) => dep.dependencies && dep.dependencies[pkg],
+            );
+          },
+        );
         packages.push(...nonDependencyPackages);
       } else if (existsSync(packageJsonPath)) {
         packages.push(...Object.keys(packageJson.dependencies));
@@ -100,7 +107,7 @@ export async function install(args) {
         packageName,
         spinner,
         packageInfoList.length + 1,
-        packages.length
+        packages.length,
       );
 
       if (version === "latest") {
@@ -111,12 +118,22 @@ export async function install(args) {
 
       if (packageInfo.dependencies) {
         for (const depName in packageInfo.dependencies) {
-          await fetchAllDependencies(depName, spinner, packageInfoList, packages, installDir);
+          await fetchAllDependencies(
+            depName,
+            spinner,
+            packageInfoList,
+            packages,
+            installDir,
+          );
         }
       }
     }
 
-    const calculateTotalDependencies = (pkgInfo, version, visited = new Set()) => {
+    const calculateTotalDependencies = (
+      pkgInfo,
+      version,
+      visited = new Set(),
+    ) => {
       if (visited.has(pkgInfo.name)) return 0;
       visited.add(pkgInfo.name);
 
@@ -127,17 +144,23 @@ export async function install(args) {
         const depVersion = dependencies[depName];
         const depInfo = packageInfoList.find((info) => info.name === depName);
         if (depInfo) {
-          totalDependencies += calculateTotalDependencies(depInfo, depVersion, visited);
+          totalDependencies += calculateTotalDependencies(
+            depInfo,
+            depVersion,
+            visited,
+          );
         }
       }
 
       return totalDependencies;
     };
 
-    const totalPackages = packageInfoList.reduce(
-      (sum, pkgInfo) => sum + calculateTotalDependencies(pkgInfo, pkgInfo.version),
-      0
-    ) + packages.length;
+    const totalPackages =
+      packageInfoList.reduce(
+        (sum, pkgInfo) =>
+          sum + calculateTotalDependencies(pkgInfo, pkgInfo.version),
+        0,
+      ) + packages.length;
     let currentPackageIndex = 0;
 
     const startTime = Date.now();
@@ -149,7 +172,9 @@ export async function install(args) {
         const nodeModulesDir = join(installDir, "node_modules", packageName);
         if (existsSync(nodeModulesDir)) {
           const packageJsonPath = join(nodeModulesDir, "package.json");
-          const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8"));
+          const packageJson = JSON.parse(
+            readFileSync(packageJsonPath, "utf-8"),
+          );
           const installedVersion = packageJson.version;
 
           if (installedVersion === version) {
@@ -157,8 +182,8 @@ export async function install(args) {
             spinner.text = `[${currentPackageIndex}/${totalPackages}] Package already installed: ${packageName}, version: ${version}, skipping.`;
             continue;
           }
-        };
-      };
+        }
+      }
 
       currentPackageIndex++;
       spinner.text = `${isForce ? chalk.bgYellow("FORCE") : ""} [${currentPackageIndex}/${totalPackages}] Installing package: ${packageName}, version: ${version}`;
@@ -172,12 +197,13 @@ export async function install(args) {
         isDevDependency,
         currentPackageIndex,
         totalPackages,
-        isForce
+        isForce,
       );
       spinner.text = `${isForce ? chalk.bgYellow("FORCE") : ""} [${currentPackageIndex}/${totalPackages}] Installed package: ${installedPackage.packageName}, version: ${installedPackage.version}`;
 
       if (isDevDependency) {
-        packageJson.devDependencies[installedPackage.packageName] = installedPackage.version;
+        packageJson.devDependencies[installedPackage.packageName] =
+          installedPackage.version;
         lockFileData.devDependencies[installedPackage.packageName] = {
           version: installedPackage.version,
           resolved: installedPackage.resolved,
@@ -185,7 +211,8 @@ export async function install(args) {
           dependencies: installedPackage.dependencies,
         };
       } else {
-        packageJson.dependencies[installedPackage.packageName] = installedPackage.version;
+        packageJson.dependencies[installedPackage.packageName] =
+          installedPackage.version;
         lockFileData.dependencies[installedPackage.packageName] = {
           version: installedPackage.version,
           resolved: installedPackage.resolved,
@@ -208,21 +235,27 @@ export async function install(args) {
 
     const endTime = Date.now();
     const duration = endTime - startTime;
-    const durationText = duration < 1000 ? `${duration} ms` : `${(duration / 1000).toFixed(2)} seconds`;
+    const durationText =
+      duration < 1000
+        ? `${duration} ms`
+        : `${(duration / 1000).toFixed(2)} seconds`;
 
     spinner.stop();
     logger.logSuccess({
       message: `Successfully installed ${packages.length} packages in ${durationText}`,
       successType: " PACM_INSTALL_SUCCESS ",
     });
-    if (alreadyInstalledPackages.length > 0) console.log(`\n\n${chalk.bgYellow("Packages already installed")} ${alreadyInstalledPackages.join(", ")}`);
+    if (alreadyInstalledPackages.length > 0)
+      console.log(
+        `\n\n${chalk.bgYellow("Packages already installed")} ${alreadyInstalledPackages.join(", ")}`,
+      );
   } catch (error) {
     spinner.stop();
     logger.logError({
       message: error.stack,
       exit: true,
       errorType: " PACM_ERROR ",
-    })
+    });
     console.error(error);
   }
 }

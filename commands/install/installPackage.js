@@ -132,7 +132,8 @@ export async function installPackage(
     }
   }
 
-  const dependencies = metadata.versions[maxSatisfyingVersion].dependencies || {};
+  const dependencies =
+    metadata.versions[maxSatisfyingVersion].dependencies || {};
 
   for (const [depName, depVersion] of Object.entries(dependencies)) {
     await installPackage(

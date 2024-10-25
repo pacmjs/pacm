@@ -75,19 +75,19 @@ export const remove = async (args) => {
     const dependencies = packageInfo.versions[latestVersion].dependencies || {};
 
     try {
-    if (packageJson.dependencies[pkg]) {
-      delete packageJson.dependencies[pkg];
-    } else if (packageJson.devDependencies[pkg]) {
-      delete packageJson.devDependencies[pkg];
-    } else if (initiallyInstalledPackages.has(pkg)) {
-      notInstalledPackages.push(pkg);
-    }
+      if (packageJson.dependencies[pkg]) {
+        delete packageJson.dependencies[pkg];
+      } else if (packageJson.devDependencies[pkg]) {
+        delete packageJson.devDependencies[pkg];
+      } else if (initiallyInstalledPackages.has(pkg)) {
+        notInstalledPackages.push(pkg);
+      }
 
-    if (lockFileData.dependencies[pkg]) {
-      delete lockFileData.dependencies[pkg];
-    } else if (lockFileData.devDependencies[pkg]) {
-      delete lockFileData.devDependencies[pkg];
-    }
+      if (lockFileData.dependencies[pkg]) {
+        delete lockFileData.dependencies[pkg];
+      } else if (lockFileData.devDependencies[pkg]) {
+        delete lockFileData.devDependencies[pkg];
+      }
     } catch (error) {
       spinner.stop();
 
@@ -136,7 +136,8 @@ export const remove = async (args) => {
   }
 
   writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
-  if (!lockfileDeleted) writeFileSync(lockFilePath, JSON.stringify(lockFileData, null, 2));
+  if (!lockfileDeleted)
+    writeFileSync(lockFilePath, JSON.stringify(lockFileData, null, 2));
 
   spinner.succeed(`Completed package${packages.length > 1 ? "s" : ""} removal`);
   if (notInstalledPackages.length > 0) {

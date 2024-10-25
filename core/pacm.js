@@ -12,7 +12,7 @@ import {
   publish,
   search,
   info,
-  self_update
+  self_update,
 } from "../commands/index.js";
 import { update } from "../commands/update.js";
 import { list } from "../commands/list.js";
@@ -20,8 +20,10 @@ import checkScriptExists from "../utils/checkScriptExists.js";
 import closestScriptMatch from "../utils/closestScriptMatch.js";
 import logger from "../lib/logger.js";
 import process from "node:process";
+import UpdateCheck from "../handlers/update.js";
 
-function main() {
+async function main() {
+  await UpdateCheck();
   const command = argv[2];
   switch (command) {
     case "help":
@@ -100,7 +102,12 @@ function main() {
       info(argv.slice(3));
       break;
     default:
-      if (argv === undefined || argv.length === 0 || argv[2] === undefined || argv[2] === "") {
+      if (
+        argv === undefined ||
+        argv.length === 0 ||
+        argv[2] === undefined ||
+        argv[2] === ""
+      ) {
         return help();
       }
 
