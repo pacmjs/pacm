@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import semver from "semver";
@@ -102,23 +103,33 @@ export async function installPackage(
     `${maxSatisfyingVersion}.tgz`,
   );
 
-  if (!existsSync(packageDir)) {
-    mkdirSync(packageDir, { recursive: true });
-    await downloadAndExtractTarball(
-      tarballUrl,
-      packageDir,
-      cachePath,
-      spinner,
-      isForce,
-      currentPackageIndex,
-      totalPackages,
-    );
-  } else {
+  if (existsSync(packageDir)) {
     const packageJsonPath = join(packageDir, "package.json");
-    const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8"));
-    const installedVersion = packageJson.version;
+    if (existsSync(packageJsonPath)) {
+      const packageJson = readFileSync(packageJsonPath, "utf-8");
+      try {
+        const parsedPackageJson = JSON.parse(packageJson);
+        const installedVersion = parsedPackageJson.version;
 
-    if (installedVersion !== maxSatisfyingVersion) {
+        if (installedVersion !== maxSatisfyingVersion) {
+          await downloadAndExtractTarball(
+            tarballUrl,
+            packageDir,
+            cachePath,
+            spinner,
+            isForce,
+            currentPackageIndex,
+            totalPackages,
+          );
+        }
+      } catch (error) {
+        logger.logError({
+          message: "Error parsing package.json",
+          exit: true,
+          errorType: " PACM_ERROR_PARSING_PACKAGE_JSON ",
+        });
+      }
+    } else {
       await downloadAndExtractTarball(
         tarballUrl,
         packageDir,
@@ -129,6 +140,17 @@ export async function installPackage(
         totalPackages,
       );
     }
+  } else {
+    mkdirSync(packageDir, { recursive: true });
+    await downloadAndExtractTarball(
+      tarballUrl,
+      packageDir,
+      cachePath,
+      spinner,
+      isForce,
+      currentPackageIndex,
+      totalPackages,
+    );
   }
 
   const dependencies =

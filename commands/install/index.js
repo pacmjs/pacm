@@ -61,7 +61,10 @@ export async function install(args) {
 
   try {
     if (packages.length === 0) {
-      if (existsSync(lockFilePath)) {
+      if (existsSync(packageJsonPath)) {
+        packages.push(...Object.keys(packageJson.dependencies));
+        packages.push(...Object.keys(packageJson.devDependencies));
+      } else if (existsSync(lockFilePath)) {
         const allDependencies = {
           ...lockFileData.dependencies,
           ...lockFileData.devDependencies,
@@ -74,9 +77,6 @@ export async function install(args) {
           },
         );
         packages.push(...nonDependencyPackages);
-      } else if (existsSync(packageJsonPath)) {
-        packages.push(...Object.keys(packageJson.dependencies));
-        packages.push(...Object.keys(packageJson.devDependencies));
       } else {
         throw new Error("No packages to install");
       }
