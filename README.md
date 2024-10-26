@@ -1,4 +1,4 @@
-# <img src="https://pacmjs.github.io/assets/assets/logo.png" height="35" width="35" style="margin-left: 25px;"></img> Pacm - Package Manager
+# <img src="https://pacmjs.github.io/assets/assets/logo.png" height="35" width="35" style="margin-left: 25px;"></img> Pacm - The JavaScript Package Manager
 
 Pacm is a package manager designed to handle package installations, upgrades, removals and a lot more with ease. This document provides an overview of the usage of Pacm and the performance improvements and new optimizations introduced in the latest version.
 
