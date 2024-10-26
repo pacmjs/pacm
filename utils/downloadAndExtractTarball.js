@@ -22,13 +22,13 @@ export async function downloadAndExtractTarball(
 ) {
   if (existsSync(cachePath)) {
     spinner.text = `${isForce ? chalk.bgYellow("FORCE") : ""} [${currentPackageIndex}/${totalPackages}] Extracting ${cachePath} to ${dest}`;
-    extract({ file: cachePath, cwd: dest, strip: 1 });
+    await extract({ file: cachePath, cwd: dest, strip: 1 });
   } else {
     const tempPath = join(
       tmpdir(),
       `${Date.now()}-${Math.random().toString(36).substring(7)}.tgz`,
     );
-    return retryOnECONNRESET(
+    await retryOnECONNRESET(
       async (url, dest) => {
         spinner.text = `${isForce ? chalk.bgYellow("FORCE") : ""} [${currentPackageIndex}/${totalPackages}] Downloading tarball from ${url}`;
         const response = await fetch(url);
@@ -41,7 +41,7 @@ export async function downloadAndExtractTarball(
             .pipe(fileStream)
             .on("finish", resolve)
             .on("error", reject);
-          fileStream.on("finish", () => {
+          fileStream.on("finish", async () => {
             spinner.text = `${isForce ? chalk.bgYellow("FORCE") : ""} [${currentPackageIndex}/${totalPackages}] Writing cache to ${cachePath}`;
             const cacheDir = dirname(cachePath);
             if (!existsSync(cacheDir)) {
@@ -49,7 +49,7 @@ export async function downloadAndExtractTarball(
             }
             copyFileSync(tempPath, cachePath);
             spinner.text = `${isForce ? chalk.bgYellow("FORCE") : ""} [${currentPackageIndex}/${totalPackages}] Extracting ${tempPath} to ${dest}`;
-            extract({ file: tempPath, cwd: dest, strip: 1 })
+            await extract({ file: tempPath, cwd: dest, strip: 1 })
               .then(resolve)
               .catch(reject);
           });

@@ -134,24 +134,28 @@ export async function installPackage(
   const dependencies =
     metadata.versions[maxSatisfyingVersion].dependencies || {};
 
-  for (const [depName, depVersion] of Object.entries(dependencies)) {
-    await installPackage(
-      spinner,
-      depName,
-      depVersion,
-      installDir,
-      postInstallScripts,
-      lockFileData,
-      isDevDependency,
-      currentPackageIndex,
-      totalPackages,
-      isForce,
-      false,
-    );
-    if (currentPackageIndex < totalPackages) {
-      currentPackageIndex++;
-    }
-  }
+  const dependencyPromises = Object.entries(dependencies).map(
+    async ([depName, depVersion]) => {
+      await installPackage(
+        spinner,
+        depName,
+        depVersion,
+        installDir,
+        postInstallScripts,
+        lockFileData,
+        isDevDependency,
+        currentPackageIndex,
+        totalPackages,
+        isForce,
+        false,
+      );
+      if (currentPackageIndex < totalPackages) {
+        currentPackageIndex++;
+      }
+    },
+  );
+
+  await Promise.all(dependencyPromises);
 
   postInstallScripts.push(packageDir);
 
