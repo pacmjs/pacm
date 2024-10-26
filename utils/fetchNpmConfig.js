@@ -1,6 +1,7 @@
 import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
+import process from "node:process";
 
 function readNpmrcFile() {
   const projectNpmrcPath = join(process.cwd(), ".npmrc");
