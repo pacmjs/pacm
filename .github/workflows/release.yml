@@ -25,7 +25,10 @@ jobs:
           run: deno install
   
         - name: Run package
-          run: deno run package-windows-${{ matrix.arch }}
+          run: npm run package-windows-${{ matrix.arch }}
+
+        - name: List release directory for debugging
+          run: dir release
 
         - name: Rename output file
           run: mv release/pacm-${{ matrix.arch }} release/pacm-windows-${{ matrix.arch }}.exe
@@ -56,7 +59,10 @@ jobs:
           run: deno install
   
         - name: Run package
-          run: deno run package-linux-${{ matrix.arch }}
+          run: npm run package-linux-${{ matrix.arch }}
+
+        - name: List release directory for debugging
+          run: ls -la release
 
         - name: Rename output file
           run: mv release/pacm-${{ matrix.arch }} release/pacm-linux-${{ matrix.arch }}
@@ -87,7 +93,10 @@ jobs:
           run: deno install
 
         - name: Run package
-          run: deno run package-macos-${{ matrix.arch }}
+          run: npm run package-macos-${{ matrix.arch }}
+
+        - name: List release directory for debugging
+          run: ls -la release
 
         - name: Rename output file
           run: mv release/pacm-${{ matrix.arch }} release/pacm-macos-${{ matrix.arch }}
