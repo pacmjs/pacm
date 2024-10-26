@@ -31,7 +31,7 @@ jobs:
           run: dir release
 
         - name: Rename output file
-          run: mv release/pacm-${{ matrix.arch }} release/pacm-windows-${{ matrix.arch }}.exe
+          run: mv release/pacm-${{ matrix.arch }}.exe release/pacm-windows-${{ matrix.arch }}.exe
 
         - name: Upload compiled files
           uses: actions/upload-artifact@v3
