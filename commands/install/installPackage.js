@@ -8,6 +8,7 @@ import { homedir } from "node:os";
 import process from "node:process";
 import chalk from "chalk";
 import logger from "../../lib/logger.js";
+import { fetchNpmConfig } from "../../utils/fetchNpmConfig.js";
 
 const globalCacheDir = join(homedir(), ".pacm-cache");
 

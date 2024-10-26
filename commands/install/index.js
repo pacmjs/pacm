@@ -9,6 +9,7 @@ import process from "node:process";
 import chalk from "chalk";
 import logger from "../../lib/logger.js";
 import { fetchAllDependencies } from "./fetchAllDependencies.js";
+import { fetchNpmConfig } from "../../utils/fetchNpmConfig.js";
 
 export async function install(args) {
   const packages = [];
