@@ -85,49 +85,56 @@ export async function install(args) {
     const isDevDependency = flags.includes("--dev") || flags.includes("-D");
     const isForce = flags.includes("--force") || flags.includes("-f");
 
-    const packageInfoList = [];
-    for (const pkg of packages) {
-      let packageName, version;
+    const packageInfoList = await Promise.all(
+      packages.map(async (pkg) => {
+        let packageName, version;
 
-      if (pkg.startsWith("@")) {
-        const atIndex = pkg.indexOf("@", 1);
-        if (atIndex === -1) {
-          packageName = pkg;
-          version = "latest";
+        if (pkg.startsWith("@")) {
+          const atIndex = pkg.indexOf("@", 1);
+          if (atIndex === -1) {
+            packageName = pkg;
+            version = "latest";
+          } else {
+            packageName = pkg.substring(0, atIndex);
+            version = pkg.substring(atIndex + 1) || "latest";
+          }
         } else {
-          packageName = pkg.substring(0, atIndex);
-          version = pkg.substring(atIndex + 1) || "latest";
+          [packageName, version] = pkg.split("@");
+          version = version || "latest";
         }
-      } else {
-        [packageName, version] = pkg.split("@");
-        version = version || "latest";
-      }
 
-      const packageInfo = await fetchPackageMetadata(
-        packageName,
-        spinner,
-        packageInfoList.length + 1,
-        packages.length,
-      );
+        const packageInfo = await fetchPackageMetadata(
+          packageName,
+          spinner,
+          packageInfoList.length + 1,
+          packages.length,
+        );
 
-      if (version === "latest") {
-        version = packageInfo["dist-tags"].latest;
-      }
+        if (version === "latest") {
+          version = packageInfo["dist-tags"].latest;
+        }
 
-      packageInfoList.push({ ...packageInfo, version });
+        return { ...packageInfo, version };
+      }),
+    );
 
-      if (packageInfo.dependencies) {
-        for (const depName in packageInfo.dependencies) {
-          await fetchAllDependencies(
-            depName,
-            spinner,
-            packageInfoList,
-            packages,
-            installDir,
+    await Promise.all(
+      packageInfoList.map(async (packageInfo) => {
+        if (packageInfo.dependencies) {
+          await Promise.all(
+            Object.keys(packageInfo.dependencies).map((depName) =>
+              fetchAllDependencies(
+                depName,
+                spinner,
+                packageInfoList,
+                packages,
+                installDir,
+              ),
+            ),
           );
         }
-      }
-    }
+      }),
+    );
 
     const calculateTotalDependencies = (
       pkgInfo,
