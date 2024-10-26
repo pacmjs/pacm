@@ -123,8 +123,8 @@ jobs:
             GITHUB_TOKEN: ${{ secrets.PAT }}
           with:
             upload_url: ${{ github.event.release.upload_url }}
-            asset_path: ./dist-windows/pacm.exe
-            asset_name: pacm.exe
+            asset_path: ./dist-windows/pacm-windows.exe
+            asset_name: pacm-windows.exe
             asset_content_type: application/octet-stream
 
         - name: Upload Linux release asset
