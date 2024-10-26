@@ -2,7 +2,7 @@ import { exec } from "node:child_process";
 import checkScriptExists from "../utils/checkScriptExists.js";
 import closestScriptMatch from "../utils/closestScriptMatch.js";
 import { join } from "node:path";
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import logger from "../lib/logger.js";
 import process from "node:process";
 
@@ -41,14 +41,31 @@ export async function run(args) {
   const scripts = packageJson.scripts || {};
   const script = scripts[args[0]];
 
-  exec(script, (error, stdout, stderr) => {
-    if (error)
-      logger.logError({
-        message: error,
-        exit: true,
-        errorType: " PACM_RUNTIME_ERROR ",
-      });
-    console.log(stdout);
-    console.error(stderr);
-  });
+  const binPath = join(process.cwd(), "node_modules", ".bin", args[0]);
+
+  if (existsSync(binPath)) {
+    exec(`"${binPath}" ${args.slice(1).join(" ")}`, (error, stdout, stderr) => {
+      if (error) {
+        logger.logError({
+          message: `Command failed: ${error.message}`,
+          exit: true,
+          errorType: " PACM_RUNTIME_ERROR ",
+        });
+      }
+      console.log(stdout);
+      console.error(stderr);
+    });
+  } else {
+    exec(script, (error, stdout, stderr) => {
+      if (error) {
+        logger.logError({
+          message: `Command failed: ${error.message}`,
+          exit: true,
+          errorType: " PACM_RUNTIME_ERROR ",
+        });
+      }
+      console.log(stdout);
+      console.error(stderr);
+    });
+  }
 }

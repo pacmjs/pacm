@@ -107,27 +107,35 @@ export async function installPackage(
     const packageJsonPath = join(packageDir, "package.json");
     if (existsSync(packageJsonPath)) {
       const packageJson = readFileSync(packageJsonPath, "utf-8");
-      try {
-        const parsedPackageJson = JSON.parse(packageJson);
-        const installedVersion = parsedPackageJson.version;
-
-        if (installedVersion !== maxSatisfyingVersion) {
-          await downloadAndExtractTarball(
-            tarballUrl,
-            packageDir,
-            cachePath,
-            spinner,
-            isForce,
-            currentPackageIndex,
-            totalPackages,
-          );
-        }
-      } catch (error) {
+      if (packageJson.trim() === "") {
         logger.logError({
-          message: "Error parsing package.json",
+          message: "package.json is empty.",
           exit: true,
-          errorType: " PACM_ERROR_PARSING_PACKAGE_JSON ",
+          errorType: " PACM_EMPTY_PACKAGE_JSON ",
         });
+      } else {
+        try {
+          const parsedPackageJson = JSON.parse(packageJson);
+          const installedVersion = parsedPackageJson.version;
+
+          if (installedVersion !== maxSatisfyingVersion) {
+            await downloadAndExtractTarball(
+              tarballUrl,
+              packageDir,
+              cachePath,
+              spinner,
+              isForce,
+              currentPackageIndex,
+              totalPackages,
+            );
+          }
+        } catch (error) {
+          logger.logError({
+            message: "Error parsing package.json\n" + error.stack,
+            exit: true,
+            errorType: " PACM_ERROR_PARSING_PACKAGE_JSON ",
+          });
+        }
       }
     } else {
       await downloadAndExtractTarball(
