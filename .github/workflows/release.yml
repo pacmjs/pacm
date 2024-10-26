@@ -1,148 +1,129 @@
 name: Release
 
 on:
-    release:
-        types: [created]
+  push:
+    tags:
+      - 'v*'
 
 jobs:
-    build-windows:
-        runs-on: windows-latest
+  build-windows:
+    runs-on: windows-latest
 
-        steps:
-        - name: Checkout repository
-          uses: actions/checkout@v2
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
 
-        - name: Set up Deno
-          uses: denoland/setup-deno@v1
-          with:
-            deno-version: v2.x
+    - name: Set up Deno
+      uses: denoland/setup-deno@v1
+      with:
+        deno-version: v2.x
 
-        - name: Install dependencies
-          run: deno install
-  
-        - name: Run package
-          run: deno run package-windows
+    - name: Install dependencies
+      run: deno install
 
-        - name: Rename output file
-          run: mv release/pacm.exe release/pacm-windows.exe
+    - name: Run package
+      run: deno run package-windows
 
-        - name: Upload compiled files
-          uses: actions/upload-artifact@v3
-          with:
-            name: dist-windows
-            path: release/pacm-windows.exe
+    - name: Rename output file
+      run: mv release/pacm.exe release/pacm-windows.exe
 
-    build-linux:
-        runs-on: ubuntu-latest
+    - name: Upload compiled files
+      uses: actions/upload-artifact@v3
+      with:
+        name: dist-windows
+        path: release/pacm-windows.exe
 
-        steps:
-        - name: Checkout repository
-          uses: actions/checkout@v2
+  build-linux:
+    runs-on: ubuntu-latest
 
-        - name: Set up Deno
-          uses: denoland/setup-deno@v1
-          with:
-            deno-version: v2.x
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
 
-        - name: Install dependencies
-          run: deno install
-  
-        - name: Run package
-          run: deno run package
+    - name: Set up Deno
+      uses: denoland/setup-deno@v1
+      with:
+        deno-version: v2.x
 
-        - name: Rename output file
-          run: mv release/pacm release/pacm-linux
+    - name: Install dependencies
+      run: deno install
 
-        - name: Upload compiled files
-          uses: actions/upload-artifact@v3
-          with:
-            name: dist-linux
-            path: release/pacm-linux
+    - name: Run package
+      run: deno run package
 
-    build-macos:
-        runs-on: macos-latest
+    - name: Rename output file
+      run: mv release/pacm release/pacm-linux
 
-        steps:
-        - name: Checkout repository
-          uses: actions/checkout@v2
+    - name: Upload compiled files
+      uses: actions/upload-artifact@v3
+      with:
+        name: dist-linux
+        path: release/pacm-linux
 
-        - name: Set up Deno
-          uses: denoland/setup-deno@v1
-          with:
-            deno-version: v2.x
+  build-macos:
+    runs-on: macos-latest
 
-        - name: Install dependencies
-          run: deno install
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
 
-        - name: Run package
-          run: deno run package
+    - name: Set up Deno
+      uses: denoland/setup-deno@v1
+      with:
+        deno-version: v2.x
 
-        - name: Rename output file
-          run: mv release/pacm release/pacm-macos
+    - name: Install dependencies
+      run: deno install
 
-        - name: Upload compiled files
-          uses: actions/upload-artifact@v3
-          with:
-            name: dist-macos
-            path: release/pacm-macos
+    - name: Run package
+      run: deno run package
 
-    upload-release-assets:
-        runs-on: ubuntu-latest
-        needs: [build-windows, build-linux, build-macos]
-        steps:
-        - name: Download Windows artifact
-          uses: actions/download-artifact@v3
-          with:
-            name: dist-windows
-            path: ./dist-windows
+    - name: Rename output file
+      run: mv release/pacm release/pacm-macos
 
-        - name: Download Linux artifact
-          uses: actions/download-artifact@v3
-          with:
-            name: dist-linux
-            path: ./dist-linux
+    - name: Upload compiled files
+      uses: actions/upload-artifact@v3
+      with:
+        name: dist-macos
+        path: release/pacm-macos
 
-        - name: Download macOS artifact
-          uses: actions/download-artifact@v3
-          with:
-            name: dist-macos
-            path: ./dist-macos
+  create-release:
+    runs-on: ubuntu-latest
+    needs: [build-windows, build-linux, build-macos]
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
 
-        - name: Verify Windows artifact
-          run: ls -la ./dist-windows
+    - name: Download Windows artifact
+      uses: actions/download-artifact@v3
+      with:
+        name: dist-windows
+        path: ./dist-windows
 
-        - name: Verify Linux artifact
-          run: ls -la ./dist-linux
+    - name: Download Linux artifact
+      uses: actions/download-artifact@v3
+      with:
+        name: dist-linux
+        path: ./dist-linux
 
-        - name: Verify macOS artifact
-          run: ls -la ./dist-macos
+    - name: Download macOS artifact
+      uses: actions/download-artifact@v3
+      with:
+        name: dist-macos
+        path: ./dist-macos
 
-        - name: Upload Windows release asset
-          uses: actions/upload-release-asset@v1
-          env:
-            GITHUB_TOKEN: ${{ secrets.PAT }}
-          with:
-            upload_url: ${{ github.event.release.upload_url }}
-            asset_path: ./dist-windows/pacm-windows.exe
-            asset_name: pacm-windows.exe
-            asset_content_type: application/octet-stream
+    - name: Generate release description
+      id: generate_release_description
+      run: echo "description=Release for tag ${{ github.ref_name }}" >> $GITHUB_ENV
 
-        - name: Upload Linux release asset
-          uses: actions/upload-release-asset@v1
-          env:
-            GITHUB_TOKEN: ${{ secrets.PAT }}
-          with:
-            upload_url: ${{ github.event.release.upload_url }}
-            asset_path: ./dist-linux/pacm-linux
-            asset_name: pacm-linux
-            asset_content_type: application/octet-stream
-
-        - name: Upload macOS release asset
-          uses: actions/upload-release-asset@v1
-          env:
-            GITHUB_TOKEN: ${{ secrets.PAT }}
-          with:
-            upload_url: ${{ github.event.release.upload_url }}
-            asset_path: ./dist-macos/pacm-macos
-            asset_name: pacm-macos
-            asset_content_type: application/octet-stream
+    - name: Create GitHub Release
+      env:
+        description: ${{ steps.generate_release_description.outputs.description }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        gh release create ${{ github.ref_name }} \
+          ./dist-windows/pacm-windows.exe#pacm-windows.exe \
+          ./dist-linux/pacm-linux#pacm-linux \
+          ./dist-macos/pacm-macos#pacm-macos \
+          --title "Release ${{ github.ref_name }}" \
+          --notes "${{ env.description }}"
