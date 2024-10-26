@@ -23,6 +23,12 @@ export async function fetchPackageMetadata(
       });
     }
     const metadata = await response.json();
+
+    // Handle peer dependencies in the metadata
+    if (metadata.peerDependencies) {
+      metadata.peerDependencies = metadata.peerDependencies;
+    }
+
     return metadata;
   } catch (error) {
     spinner.fail(
