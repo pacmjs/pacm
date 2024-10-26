@@ -10,6 +10,8 @@ import chalk from "chalk";
 import logger from "../../lib/logger.js";
 import { fetchAllDependencies } from "./fetchAllDependencies.js";
 
+const packageInfoList = [];
+
 export async function install(args) {
   const packages = [];
   const flags = [];
@@ -85,7 +87,7 @@ export async function install(args) {
     const isDevDependency = flags.includes("--dev") || flags.includes("-D");
     const isForce = flags.includes("--force") || flags.includes("-f");
 
-    const packageInfoList = await Promise.all(
+    await Promise.all(
       packages.map(async (pkg) => {
         let packageName, version;
 
