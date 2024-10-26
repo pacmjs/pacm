@@ -21,7 +21,7 @@ export async function installPackage(
   version,
   installDir = process.cwd(),
   postInstallScripts = [],
-  lockFileData = { dependencies: {}, devDependencies: {} },
+  lockFileData = { dependencies: {}, devDependencies: {}, peerDependencies: {} },
   isDevDependency = false,
   currentPackageIndex = 0,
   totalPackages = 0,
@@ -163,6 +163,8 @@ export async function installPackage(
 
   const dependencies =
     metadata.versions[maxSatisfyingVersion].dependencies || {};
+  const peerDependencies =
+    metadata.versions[maxSatisfyingVersion].peerDependencies || {};
 
   const dependencyPromises = Object.entries(dependencies).map(
     async ([depName, depVersion]) => {
@@ -185,7 +187,28 @@ export async function installPackage(
     },
   );
 
-  await Promise.all(dependencyPromises);
+  const peerDependencyPromises = Object.entries(peerDependencies).map(
+    async ([peerDepName, peerDepVersion]) => {
+      await installPackage(
+        spinner,
+        peerDepName,
+        peerDepVersion,
+        installDir,
+        postInstallScripts,
+        lockFileData,
+        isDevDependency,
+        currentPackageIndex,
+        totalPackages,
+        isForce,
+        false,
+      );
+      if (currentPackageIndex < totalPackages) {
+        currentPackageIndex++;
+      }
+    },
+  );
+
+  await Promise.all([...dependencyPromises, ...peerDependencyPromises]);
 
   postInstallScripts.push(packageDir);
 
@@ -196,6 +219,8 @@ export async function installPackage(
       integrity: packageVersion.dist.integrity,
       dependencies:
         Object.keys(dependencies).length > 0 ? dependencies : undefined,
+      peerDependencies:
+        Object.keys(peerDependencies).length > 0 ? peerDependencies : undefined,
     };
   } else {
     lockFileData.dependencies[packageName] = {
@@ -204,10 +229,11 @@ export async function installPackage(
       integrity: packageVersion.dist.integrity,
       dependencies:
         Object.keys(dependencies).length > 0 ? dependencies : undefined,
+      peerDependencies:
+        Object.keys(peerDependencies).length > 0 ? peerDependencies : undefined,
     };
   }
 
-  // Pe142
   const binEntries = packageVersion.bin || {};
   if (Object.keys(binEntries).length > 0) {
     const binDir = join(installDir, "node_modules", ".bin");
@@ -215,7 +241,6 @@ export async function installPackage(
       mkdirSync(binDir, { recursive: true });
     }
 
-    // P474c
     for (const [binName, binPath] of Object.entries(binEntries)) {
       const binFilePath = join(binDir, `${packageName}.pacmx`);
       const binFileContent = `#!/usr/bin/env node\nrequire('${join(
@@ -240,5 +265,6 @@ export async function installPackage(
     resolved: tarballUrl,
     integrity: packageVersion.dist.integrity,
     dependencies,
+    peerDependencies,
   };
 }

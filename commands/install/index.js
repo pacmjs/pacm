@@ -27,12 +27,12 @@ export async function install(args) {
   const packageJsonPath = join(installDir, "package.json");
   const lockFilePath = join(installDir, "pacm.lockp");
   let packageJson = {};
-  let lockFileData = { dependencies: {}, devDependencies: {} };
+  let lockFileData = { dependencies: {}, devDependencies: {}, peerDependencies: {} };
 
   if (existsSync(packageJsonPath)) {
     packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8"));
   } else {
-    packageJson = { dependencies: {}, devDependencies: {} };
+    packageJson = { dependencies: {}, devDependencies: {}, peerDependencies: {} };
   }
 
   if (!packageJson.dependencies) {
@@ -43,6 +43,10 @@ export async function install(args) {
     packageJson.devDependencies = {};
   }
 
+  if (!packageJson.peerDependencies) {
+    packageJson.peerDependencies = {};
+  }
+
   if (existsSync(lockFilePath)) {
     if (
       readFileSync(lockFilePath, "utf-8") === "" ||
@@ -50,7 +54,7 @@ export async function install(args) {
       readFileSync(lockFilePath, "utf-8") === "{\n}" ||
       readFileSync(lockFilePath, "utf-8") === "{\n}\n"
     ) {
-      lockFileData = { dependencies: {}, devDependencies: {} };
+      lockFileData = { dependencies: {}, devDependencies: {}, peerDependencies: {} };
     } else {
       lockFileData = JSON.parse(readFileSync(lockFilePath, "utf-8"));
     }
@@ -64,10 +68,12 @@ export async function install(args) {
       if (existsSync(packageJsonPath)) {
         packages.push(...Object.keys(packageJson.dependencies));
         packages.push(...Object.keys(packageJson.devDependencies));
+        packages.push(...Object.keys(packageJson.peerDependencies));
       } else if (existsSync(lockFilePath)) {
         const allDependencies = {
           ...lockFileData.dependencies,
           ...lockFileData.devDependencies,
+          ...lockFileData.peerDependencies,
         };
         const nonDependencyPackages = Object.keys(allDependencies).filter(
           (pkg) => {
@@ -127,6 +133,18 @@ export async function install(args) {
           );
         }
       }
+
+      if (packageInfo.peerDependencies) {
+        for (const peerDepName in packageInfo.peerDependencies) {
+          await fetchAllDependencies(
+            peerDepName,
+            spinner,
+            packageInfoList,
+            packages,
+            installDir,
+          );
+        }
+      }
     }
 
     const calculateTotalDependencies = (
@@ -138,7 +156,8 @@ export async function install(args) {
       visited.add(pkgInfo.name);
 
       const dependencies = pkgInfo.versions[version].dependencies || {};
-      let totalDependencies = Object.keys(dependencies).length;
+      const peerDependencies = pkgInfo.versions[version].peerDependencies || {};
+      let totalDependencies = Object.keys(dependencies).length + Object.keys(peerDependencies).length;
 
       for (const depName in dependencies) {
         const depVersion = dependencies[depName];
@@ -147,6 +166,18 @@ export async function install(args) {
           totalDependencies += calculateTotalDependencies(
             depInfo,
             depVersion,
+            visited,
+          );
+        }
+      }
+
+      for (const peerDepName in peerDependencies) {
+        const peerDepVersion = peerDependencies[peerDepName];
+        const peerDepInfo = packageInfoList.find((info) => info.name === peerDepName);
+        if (peerDepInfo) {
+          totalDependencies += calculateTotalDependencies(
+            peerDepInfo,
+            peerDepVersion,
             visited,
           );
         }
@@ -220,6 +251,17 @@ export async function install(args) {
           dependencies: installedPackage.dependencies,
         };
       }
+
+      if (installedPackage.peerDependencies) {
+        packageJson.peerDependencies[installedPackage.packageName] =
+          installedPackage.version;
+        lockFileData.peerDependencies[installedPackage.packageName] = {
+          version: installedPackage.version,
+          resolved: installedPackage.resolved,
+          integrity: installedPackage.integrity,
+          dependencies: installedPackage.peerDependencies,
+        };
+      }
     });
 
     await Promise.all(installPromises);
@@ -235,7 +277,6 @@ export async function install(args) {
 
     createLockFile(lockFileData, lockFilePath);
 
-    // Pa139
     const binEntries = packageJson.bin || {};
     if (Object.keys(binEntries).length > 0) {
       const binDir = join(installDir, "node_modules", ".bin");
