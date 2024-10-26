@@ -99,6 +99,15 @@ jobs:
             name: dist-macos
             path: ./dist-macos
 
+        - name: Verify Windows artifact
+          run: ls -la ./dist-windows
+
+        - name: Verify Linux artifact
+          run: ls -la ./dist-linux
+
+        - name: Verify macOS artifact
+          run: ls -la ./dist-macos
+
         - name: Upload Windows release asset
           uses: actions/upload-release-asset@v1
           env:
