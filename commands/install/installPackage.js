@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars */
-import { existsSync, mkdirSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import semver from "semver";
 import { fetchPackageMetadata } from "./fetchPackageMetadata.js";
@@ -197,6 +197,33 @@ export async function installPackage(
       dependencies:
         Object.keys(dependencies).length > 0 ? dependencies : undefined,
     };
+  }
+
+  // Pe142
+  const binEntries = packageVersion.bin || {};
+  if (Object.keys(binEntries).length > 0) {
+    const binDir = join(installDir, "node_modules", ".bin");
+    if (!existsSync(binDir)) {
+      mkdirSync(binDir, { recursive: true });
+    }
+
+    // P474c
+    for (const [binName, binPath] of Object.entries(binEntries)) {
+      const binFilePath = join(binDir, `${packageName}.pacmx`);
+      const binFileContent = `#!/usr/bin/env node\nrequire('${join(
+        packageDir,
+        binPath,
+      )}');\n`;
+      writeFileSync(binFilePath, binFileContent, { mode: 0o755 });
+
+      if (process.platform === "win32") {
+        const exeFilePath = join(binDir, `${packageName}.exe`);
+        writeFileSync(exeFilePath, binFileContent, { mode: 0o755 });
+      } else if (process.platform === "linux") {
+        const appImageFilePath = join(binDir, `${packageName}.AppImage`);
+        writeFileSync(appImageFilePath, binFileContent, { mode: 0o755 });
+      }
+    }
   }
 
   return {

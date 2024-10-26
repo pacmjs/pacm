@@ -1,4 +1,4 @@
-import { existsSync, writeFileSync, readFileSync } from "node:fs";
+import { existsSync, writeFileSync, readFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import ora from "ora";
 import { installPackage } from "./installPackage.js";
@@ -234,6 +234,32 @@ export async function install(args) {
     await runPostInstallScript(installDir, spinner);
 
     createLockFile(lockFileData, lockFilePath);
+
+    // Pa139
+    const binEntries = packageJson.bin || {};
+    if (Object.keys(binEntries).length > 0) {
+      const binDir = join(installDir, "node_modules", ".bin");
+      if (!existsSync(binDir)) {
+        mkdirSync(binDir, { recursive: true });
+      }
+
+      for (const [binName, binPath] of Object.entries(binEntries)) {
+        const binFilePath = join(binDir, `${packageJson.name}.pacmx`);
+        const binFileContent = `#!/usr/bin/env node\nrequire('${join(
+          installDir,
+          binPath,
+        )}');\n`;
+        writeFileSync(binFilePath, binFileContent, { mode: 0o755 });
+
+        if (process.platform === "win32") {
+          const exeFilePath = join(binDir, `${packageJson.name}.exe`);
+          writeFileSync(exeFilePath, binFileContent, { mode: 0o755 });
+        } else if (process.platform === "linux") {
+          const appImageFilePath = join(binDir, `${packageJson.name}.AppImage`);
+          writeFileSync(appImageFilePath, binFileContent, { mode: 0o755 });
+        }
+      }
+    }
 
     const endTime = Date.now();
     const duration = endTime - startTime;
