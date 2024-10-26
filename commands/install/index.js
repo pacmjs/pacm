@@ -165,7 +165,7 @@ export async function install(args) {
 
     const startTime = Date.now();
 
-    for (const pkgInfo of packageInfoList) {
+    const installPromises = packageInfoList.map(async (pkgInfo) => {
       const { name: packageName, version } = pkgInfo;
 
       if (!isForce) {
@@ -180,7 +180,7 @@ export async function install(args) {
           if (installedVersion === version) {
             alreadyInstalledPackages.push(packageName);
             spinner.text = `[${currentPackageIndex}/${totalPackages}] Package already installed: ${packageName}, version: ${version}, skipping.`;
-            continue;
+            return;
           }
         }
       }
@@ -220,7 +220,9 @@ export async function install(args) {
           dependencies: installedPackage.dependencies,
         };
       }
-    }
+    });
+
+    await Promise.all(installPromises);
 
     spinner.text = "Writing package.json";
     writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
