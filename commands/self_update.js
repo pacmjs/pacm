@@ -21,7 +21,6 @@ export default function self_update(args) {
   }
 
   let os = process.platform;
-  let arch = process.arch;
   let url = "";
   let filePath = "";
   let fileName = "";
@@ -46,7 +45,7 @@ export default function self_update(args) {
     });
   }
 
-  exec(`curl -L ${url} -o ${fileName}`, (error, stdout, stderr) => {
+  exec(`curl -L ${url} -o ${fileName}`, (error, stdout) => {
     if (error) {
       logger.logError({
         message:
@@ -59,7 +58,7 @@ export default function self_update(args) {
     console.log(stdout);
 
     if (os === "win32") {
-      exec(`move ${fileName} ${filePath}`, (error, stdout, stderr) => {
+      exec(`move ${fileName} ${filePath}`, (error) => {
         if (error) {
           logger.logError({
             message:
@@ -70,7 +69,7 @@ export default function self_update(args) {
         }
       });
     } else {
-      exec(`sudo mv ${fileName} ${filePath}`, (error, stdout, stderr) => {
+      exec(`sudo mv ${fileName} ${filePath}`, (error) => {
         if (error) {
           logger.logError({
             message:

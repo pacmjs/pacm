@@ -1,3 +1,4 @@
+/* eslint-disable no-self-assign */
 import fetch from "node-fetch";
 import logger from "../../lib/logger.js";
 import chalk from "chalk";
@@ -24,7 +25,6 @@ export async function fetchPackageMetadata(
     }
     const metadata = await response.json();
 
-    // Handle peer dependencies in the metadata
     if (metadata.peerDependencies) {
       metadata.peerDependencies = metadata.peerDependencies;
     }

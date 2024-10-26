@@ -13,7 +13,7 @@ export async function runPostInstallScript(packageDir, spinner) {
         exec(
           "npm run postinstall",
           { cwd: packageDir },
-          (error, stdout, stderr) => {
+          (error) => {
             if (error) {
               logger.logError({
                 message: `Failed to run postinstall script for ${packageJson.name}`,
