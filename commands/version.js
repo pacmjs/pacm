@@ -1,5 +1,5 @@
 function displayVersion() {
-  console.log("1.0.0");
+  console.log("v1.0.0-alpha.2");
 }
 
 export default function version() {
