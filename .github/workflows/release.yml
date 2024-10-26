@@ -23,11 +23,14 @@ jobs:
         - name: Run package
           run: deno run package-windows
 
+        - name: Rename output file
+          run: mv release/pacm.exe release/pacm-windows.exe
+
         - name: Upload compiled files
           uses: actions/upload-artifact@v3
           with:
             name: dist-windows
-            path: release/pacm.exe
+            path: release/pacm-windows.exe
 
     build-linux:
         runs-on: ubuntu-latest
@@ -47,11 +50,14 @@ jobs:
         - name: Run package
           run: deno run package
 
+        - name: Rename output file
+          run: mv release/pacm release/pacm-linux
+
         - name: Upload compiled files
           uses: actions/upload-artifact@v3
           with:
             name: dist-linux
-            path: release/pacm
+            path: release/pacm-linux
 
     build-macos:
         runs-on: macos-latest
@@ -71,11 +77,14 @@ jobs:
         - name: Run package
           run: deno run package
 
+        - name: Rename output file
+          run: mv release/pacm release/pacm-macos
+
         - name: Upload compiled files
           uses: actions/upload-artifact@v3
           with:
             name: dist-macos
-            path: release/pacm
+            path: release/pacm-macos
 
     upload-release-assets:
         runs-on: ubuntu-latest
@@ -124,8 +133,8 @@ jobs:
             GITHUB_TOKEN: ${{ secrets.PAT }}
           with:
             upload_url: ${{ github.event.release.upload_url }}
-            asset_path: ./dist-linux/pacm
-            asset_name: pacm
+            asset_path: ./dist-linux/pacm-linux
+            asset_name: pacm-linux
             asset_content_type: application/octet-stream
 
         - name: Upload macOS release asset
@@ -134,6 +143,6 @@ jobs:
             GITHUB_TOKEN: ${{ secrets.PAT }}
           with:
             upload_url: ${{ github.event.release.upload_url }}
-            asset_path: ./dist-macos/pacm
-            asset_name: pacm
+            asset_path: ./dist-macos/pacm-macos
+            asset_name: pacm-macos
             asset_content_type: application/octet-stream
