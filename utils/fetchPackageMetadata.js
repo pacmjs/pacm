@@ -9,14 +9,12 @@ export async function fetchPackageMetadata(
   totalPackages,
   isForce,
 ) {
-  spinner.text = `${isForce ? chalk.bgYellow("FORCE") : ""} [${currentPackageIndex}/${totalPackages}] Fetching metadata for package: ${packageName}`;
-  const fetchMetadata = async (packageName) => {
+  spinner.text = `${isForce ? chalk.bgYellow("FORCE") : ""} [${currentPackageIndex}/${totalPackages}] Fetching metadata for ${packageName}`;
+  return retryOnECONNRESET(async (packageName) => {
     const response = await fetch(`https://registry.npmjs.org/${packageName}`);
     if (!response.ok) {
       throw new Error(`Failed to fetch metadata for package ${packageName}`);
     }
     return response.json();
-  };
-
-  return retryOnECONNRESET(fetchMetadata, packageName);
+  }, packageName);
 }
