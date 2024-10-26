@@ -17,17 +17,17 @@ jobs:
           with:
             deno-version: v2.x
 
-        - name: Install Deno dependencies
+        - name: Install dependencies
           run: deno install
-
-        - name: Run compile
-          run: deno run compile
+  
+        - name: Run package
+          run: deno run package-windows
 
         - name: Upload compiled files
           uses: actions/upload-artifact@v3
           with:
             name: dist-windows
-            path: dist/
+            path: release/pacm.exe
 
     build-linux:
         runs-on: ubuntu-latest
@@ -41,17 +41,17 @@ jobs:
           with:
             deno-version: v2.x
 
-        - name: Install Deno dependencies
+        - name: Install dependencies
           run: deno install
-
-        - name: Run compile
-          run: deno run compile
+  
+        - name: Run package
+          run: deno run package
 
         - name: Upload compiled files
           uses: actions/upload-artifact@v3
           with:
             name: dist-linux
-            path: dist/
+            path: release/pacm
 
     build-macos:
         runs-on: macos-latest
@@ -65,17 +65,17 @@ jobs:
           with:
             deno-version: v2.x
 
-        - name: Install Deno dependencies
+        - name: Install dependencies
           run: deno install
 
-        - name: Run compile
-          run: deno run compile
+        - name: Run package
+          run: deno run package
 
         - name: Upload compiled files
           uses: actions/upload-artifact@v3
           with:
             name: dist-macos
-            path: dist/
+            path: release/pacm
 
     upload-release-assets:
         runs-on: ubuntu-latest
@@ -99,42 +99,13 @@ jobs:
             name: dist-macos
             path: ./dist-macos
 
-        - name: Find Windows release asset
-          id: find-windows-asset
-          run: echo "FILE_PATH=$(find ./dist-windows -type f)" >> $GITHUB_ENV
-
-        - name: Find Linux release asset
-          id: find-linux-asset
-          run: echo "FILE_PATH=$(find ./dist-linux -type f)" >> $GITHUB_ENV
-
-        - name: Find macOS release asset
-          id: find-macos-asset
-          run: echo "FILE_PATH=$(find ./dist-macos -type f)" >> $GITHUB_ENV
-
-        - name: Rename Windows release asset
-          run: |
-            mv ${{ env.FILE_PATH }} ./dist-windows/pacm.exe
-            echo "FILE_PATH=./dist-windows/pacm.exe" >> $GITHUB_ENV
-
-        - name: Rename Linux release asset
-          run: |
-            mv ${{ env.FILE_PATH }} ./dist-linux/pacm
-            chmod +x ./dist-linux/pacm
-            echo "FILE_PATH=./dist-linux/pacm" >> $GITHUB_ENV
-
-        - name: Rename macOS release asset
-          run: |
-            mv ${{ env.FILE_PATH }} ./dist-macos/pacm
-            chmod +x ./dist-macos/pacm
-            echo "FILE_PATH=./dist-macos/pacm" >> $GITHUB_ENV
-
         - name: Upload Windows release asset
           uses: actions/upload-release-asset@v1
           env:
             GITHUB_TOKEN: ${{ secrets.PAT }}
           with:
             upload_url: ${{ github.event.release.upload_url }}
-            asset_path: ${{ env.FILE_PATH }}
+            asset_path: ./dist-windows/pacm.exe
             asset_name: pacm.exe
             asset_content_type: application/octet-stream
 
@@ -144,7 +115,7 @@ jobs:
             GITHUB_TOKEN: ${{ secrets.PAT }}
           with:
             upload_url: ${{ github.event.release.upload_url }}
-            asset_path: ${{ env.FILE_PATH }}
+            asset_path: ./dist-linux/pacm
             asset_name: pacm
             asset_content_type: application/octet-stream
 
@@ -154,6 +125,6 @@ jobs:
             GITHUB_TOKEN: ${{ secrets.PAT }}
           with:
             upload_url: ${{ github.event.release.upload_url }}
-            asset_path: ${{ env.FILE_PATH }}
+            asset_path: ./dist-macos/pacm
             asset_name: pacm
             asset_content_type: application/octet-stream

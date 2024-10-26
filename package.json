@@ -8,7 +8,8 @@
     "pacm": "./core/pacm.js"
   },
   "scripts": {
-    "build": "npm i . -g",
+    "package-windows": "deno compile --unstable --allow-read --allow-write --allow-net --allow-run --allow-sys --allow-env --output ./release/pacm ./core/pacm.js && node scripts/update-icon.js",
+    "package": "deno compile --unstable --allow-read --allow-write --allow-net --allow-run --allow-sys --allow-env --output ./release/pacm ./core/pacm.js",
     "jest": "jest",
     "format": "prettier --write .",
     "lint": "eslint .",

@@ -6,7 +6,7 @@ import rcedit from 'rcedit';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const exePath = path.join(__dirname, '../dist/pacm-win.exe');
+const exePath = path.join(__dirname, '../release/pacm.exe');
 const iconPath = path.join(__dirname, '../assets/logo.ico');
 
 rcedit(exePath, {

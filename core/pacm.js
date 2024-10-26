@@ -22,6 +22,8 @@ import logger from "../lib/logger.js";
 import process from "node:process";
 import UpdateCheck from "../handlers/update.js";
 
+process.env.FORCE_COLOR = '1';
+
 async function main() {
   await UpdateCheck();
   const command = argv[2];
