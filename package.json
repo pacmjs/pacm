@@ -13,7 +13,6 @@
     "format": "prettier --write .",
     "lint": "eslint .",
     "format:check": "prettier --check .",
-    "compile": "pkg . --out-path dist && node scripts/update-icon.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
@@ -23,14 +22,6 @@
     "javascript"
   ],
   "author": "Jonas F. Franke <@binary-blazer>",
-  "pkg": {
-    "assets": [
-      "core/**/*",
-      "commands/**/*",
-      "lib/**/*",
-      "utils/**/*"
-    ]
-  },
   "license": "BOWL",
   "devDependencies": {
     "@eslint/js": "^9.12.0",
