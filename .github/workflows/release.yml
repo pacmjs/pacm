@@ -10,7 +10,7 @@ jobs:
 
         strategy:
             matrix:
-                arch: [x64, arm64]
+                arch: [x64]
 
         steps:
         - name: Checkout repository
@@ -117,12 +117,6 @@ jobs:
             name: dist-windows-x64
             path: ./dist-windows-x64
 
-        - name: Download Windows artifacts
-          uses: actions/download-artifact@v3
-          with:
-            name: dist-windows-arm64
-            path: ./dist-windows-arm64
-
         - name: Download Linux artifacts
           uses: actions/download-artifact@v3
           with:
@@ -148,7 +142,7 @@ jobs:
             path: ./dist-macos-arm64
 
         - name: Verify Windows artifacts
-          run: ls -la ./dist-windows-x64 ./dist-windows-arm64
+          run: ls -la ./dist-windows-x64
 
         - name: Verify Linux artifacts
           run: ls -la ./dist-linux-x64 ./dist-linux-arm64
@@ -164,16 +158,6 @@ jobs:
             upload_url: ${{ github.event.release.upload_url }}
             asset_path: ./dist-windows-x64/pacm-windows-x64.exe
             asset_name: pacm-windows-x64.exe
-            asset_content_type: application/octet-stream
-
-        - name: Upload Windows release assets
-          uses: actions/upload-release-asset@v1
-          env:
-            GITHUB_TOKEN: ${{ secrets.PAT }}
-          with:
-            upload_url: ${{ github.event.release.upload_url }}
-            asset_path: ./dist-windows-arm64/pacm-windows-arm64.exe
-            asset_name: pacm-windows-arm64.exe
             asset_content_type: application/octet-stream
 
         - name: Upload Linux release assets
