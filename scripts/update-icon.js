@@ -20,7 +20,7 @@ rcedit(exePath, {
     OriginalFilename: 'pacm-win.exe',
   },
   'product-version': '1.0.0-alpha.2',
-  'file-version': 'v1.0.0-alpha.2'
+  'file-version': '1.0.0-alpha.2'
 }, (err) => {
   if (err) {
     console.error(`Error: ${err}`);
