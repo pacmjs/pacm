@@ -1,0 +1,10 @@
+[package]
+name = "pacm"
+version = "0.1.0"
+edition = "2024"
+
+[workspace]
+members = ["crates/*"]
+
+[dependencies]
+pacm-cli = { path = "crates/pacm-cli" }

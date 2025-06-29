@@ -1,0 +1,12 @@
+[package]
+name = "pacm-store"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+sha2 = "0.10"
+flate2 = "1.0"
+tar = "0.4"
+fs_extra = "1.3"
+dirs = "5.0"
+tempfile = "3.10"
