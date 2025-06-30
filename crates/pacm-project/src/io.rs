@@ -1,6 +1,6 @@
+use crate::package_json::PackageJson;
 use std::fs;
 use std::path::Path;
-use crate::package_json::PackageJson;
 
 pub fn read_package_json(project_dir: &Path) -> anyhow::Result<PackageJson> {
     let path = project_dir.join("package.json");

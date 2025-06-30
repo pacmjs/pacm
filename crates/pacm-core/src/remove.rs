@@ -50,7 +50,12 @@ impl RemoveManager {
         Ok(())
     }
 
-    fn remove_from_node_modules(&self, project_dir: &PathBuf, name: &str, debug: bool) -> Result<()> {
+    fn remove_from_node_modules(
+        &self,
+        project_dir: &PathBuf,
+        name: &str,
+        debug: bool,
+    ) -> Result<()> {
         let project_node_modules = project_dir.join("node_modules");
         let package_path = if name.starts_with('@') {
             if let Some(slash_pos) = name.find('/') {
@@ -81,11 +86,11 @@ impl RemoveManager {
         let lock_path = project_dir.join("pacm.lock");
         let mut lockfile = PacmLock::load(&lock_path)
             .map_err(|e| PackageManagerError::LockfileError(e.to_string()))?;
-        
+
         lockfile
             .dependencies
             .retain(|key, _| !key.starts_with(&format!("{}@", name)));
-        
+
         lockfile
             .save(&lock_path)
             .map_err(|e| PackageManagerError::LockfileError(e.to_string()))?;

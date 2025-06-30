@@ -1,5 +1,8 @@
-use std::{fs, io, path::{Path, PathBuf}};
 use sha2::{Digest, Sha256};
+use std::{
+    fs, io,
+    path::{Path, PathBuf},
+};
 
 pub struct StoreManager;
 

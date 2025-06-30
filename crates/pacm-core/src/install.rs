@@ -26,20 +26,22 @@ impl InstallManager {
         let path = PathBuf::from(project_dir);
         let pkg = read_package_json(&path)
             .map_err(|e| PackageManagerError::PackageJsonError(e.to_string()))?;
-        
+
         let all_deps = pkg.get_all_dependencies();
         let direct_deps: Vec<(String, String)> = all_deps.into_iter().collect();
         let lock_path = path.join("pacm.lock");
-        
+
         // Resolve all dependencies
-        let (all_packages, direct_package_names) = self.resolve_dependencies(&direct_deps, debug)?;
-        
+        let (all_packages, direct_package_names) =
+            self.resolve_dependencies(&direct_deps, debug)?;
+
         // Download and store packages
         let stored_packages = self.downloader.download_packages(&all_packages, debug)?;
-        
+
         // Link dependencies within the store
-        self.linker.link_dependencies_to_store(&stored_packages, debug)?;
-        
+        self.linker
+            .link_dependencies_to_store(&stored_packages, debug)?;
+
         // Link direct dependencies to project
         self.linker.link_direct_dependencies_to_project(
             &path,
@@ -47,13 +49,13 @@ impl InstallManager {
             &direct_package_names,
             debug,
         )?;
-        
+
         // Run postinstall scripts
         self.run_postinstall_scripts(&stored_packages, debug)?;
-        
+
         // Update lockfile
         self.linker.update_lockfile(&lock_path, &stored_packages)?;
-        
+
         let installed_count = stored_packages.len();
         let final_message = if installed_count == 1 {
             "1 package installed".to_string()
@@ -88,17 +90,20 @@ impl InstallManager {
 
         // Resolve dependencies
         let mut seen = HashSet::new();
-        let all_packages = resolve_full_tree(name, version_range, &mut seen)
-            .map_err(|e| PackageManagerError::VersionResolutionFailed(name.to_string(), e.to_string()))?;
+        let all_packages = resolve_full_tree(name, version_range, &mut seen).map_err(|e| {
+            PackageManagerError::VersionResolutionFailed(name.to_string(), e.to_string())
+        })?;
 
         // Download and store packages
         let stored_packages = self.downloader.download_packages(&all_packages, debug)?;
 
         // Link dependencies within the store
-        self.linker.link_dependencies_to_store(&stored_packages, debug)?;
+        self.linker
+            .link_dependencies_to_store(&stored_packages, debug)?;
 
         // Link package to project
-        self.linker.link_single_package_to_project(&path, name, &stored_packages, debug)?;
+        self.linker
+            .link_single_package_to_project(&path, name, &stored_packages, debug)?;
 
         // Update package.json if needed
         if !no_save {
@@ -156,15 +161,14 @@ impl InstallManager {
             direct_package_names.insert(name.clone());
             pacm_logger::debug(&format!("Resolving {}@{}", name, version_range), debug);
 
-            let pkgs = resolve_full_tree(name, version_range, &mut seen)
-                .map_err(|e| {
-                    pacm_logger::error(&format!(
-                        "Failed to resolve {}@{}: {}",
-                        name, version_range, e
-                    ));
-                    PackageManagerError::VersionResolutionFailed(name.clone(), e.to_string())
-                })?;
-            
+            let pkgs = resolve_full_tree(name, version_range, &mut seen).map_err(|e| {
+                pacm_logger::error(&format!(
+                    "Failed to resolve {}@{}: {}",
+                    name, version_range, e
+                ));
+                PackageManagerError::VersionResolutionFailed(name.clone(), e.to_string())
+            })?;
+
             all_packages.extend(pkgs);
         }
 
@@ -232,7 +236,7 @@ impl InstallManager {
                 .arg(&script)
                 .current_dir(&store_path.join("package"))
                 .status();
-            
+
             match status {
                 Ok(status) if !status.success() => {
                     pacm_logger::warn(&format!("Postinstall script for {} failed", pkg_name));

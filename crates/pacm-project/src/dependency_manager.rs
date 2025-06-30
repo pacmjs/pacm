@@ -1,5 +1,5 @@
+use crate::package_json::{DependencyType, PackageJson};
 use indexmap::IndexMap;
-use crate::package_json::{PackageJson, DependencyType};
 
 pub struct DependencyManager;
 
@@ -25,22 +25,26 @@ impl DependencyManager {
 
         match dep_type {
             DependencyType::Dependencies => {
-                package_json.dependencies
+                package_json
+                    .dependencies
                     .get_or_insert_with(IndexMap::new)
                     .insert(name.to_string(), version_string);
             }
             DependencyType::DevDependencies => {
-                package_json.dev_dependencies
+                package_json
+                    .dev_dependencies
                     .get_or_insert_with(IndexMap::new)
                     .insert(name.to_string(), version_string);
             }
             DependencyType::PeerDependencies => {
-                package_json.peer_dependencies
+                package_json
+                    .peer_dependencies
                     .get_or_insert_with(IndexMap::new)
                     .insert(name.to_string(), version_string);
             }
             DependencyType::OptionalDependencies => {
-                package_json.optional_dependencies
+                package_json
+                    .optional_dependencies
                     .get_or_insert_with(IndexMap::new)
                     .insert(name.to_string(), version_string);
             }

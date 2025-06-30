@@ -62,7 +62,9 @@ impl PackageLinker {
 
         for (_package_key, (pkg, store_path)) in stored_packages {
             if direct_package_names.contains(&pkg.name) {
-                if let Err(e) = link_package(&project_dir.join("node_modules"), &pkg.name, store_path) {
+                if let Err(e) =
+                    link_package(&project_dir.join("node_modules"), &pkg.name, store_path)
+                {
                     pacm_logger::error(&format!(
                         "Failed to link {}@{}: {}",
                         pkg.name, pkg.version, e

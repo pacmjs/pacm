@@ -23,7 +23,10 @@ impl PackageLinker {
         Ok(())
     }
 
-    fn get_package_destination(project_node_modules: &Path, package_name: &str) -> std::path::PathBuf {
+    fn get_package_destination(
+        project_node_modules: &Path,
+        package_name: &str,
+    ) -> std::path::PathBuf {
         if package_name.starts_with('@') {
             if let Some(slash_pos) = package_name.find('/') {
                 let scope = &package_name[..slash_pos]; // @types

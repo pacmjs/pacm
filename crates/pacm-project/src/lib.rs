@@ -1,10 +1,10 @@
-pub mod package_json;
 pub mod dependency_manager;
 pub mod io;
+pub mod package_json;
 
-pub use package_json::{PackageJson, DependencyType};
 pub use dependency_manager::DependencyManager;
 pub use io::{read_package_json, write_package_json};
+pub use package_json::{DependencyType, PackageJson};
 
 // Backward compatibility - delegate to methods
 impl PackageJson {

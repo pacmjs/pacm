@@ -159,9 +159,7 @@ pub fn resolve_version(
         .as_object()
         .ok_or("Invalid versions object")?
         .keys()
-        .filter_map(|v_str| {
-            Version::parse(v_str).ok().map(|v| (v, v_str.clone()))
-        })
+        .filter_map(|v_str| Version::parse(v_str).ok().map(|v| (v, v_str.clone())))
         .collect();
 
     // Sort descending (highest version first)

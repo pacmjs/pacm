@@ -47,7 +47,9 @@ pub fn run_cli() -> Result<()> {
             dev,
             debug,
         } => RemoveHandler::handle_remove_packages(packages, *dev, *debug),
-        Commands::Update { packages, debug } => UpdateHandler::handle_update_packages(packages, *debug),
+        Commands::Update { packages, debug } => {
+            UpdateHandler::handle_update_packages(packages, *debug)
+        }
         Commands::List { tree, depth } => ListHandler::handle_list_dependencies(*tree, *depth),
     }
 }

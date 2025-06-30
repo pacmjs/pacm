@@ -34,5 +34,7 @@ pub async fn resolve_full_tree_async(
     seen: &mut HashSet<String>,
 ) -> anyhow::Result<Vec<ResolvedPackage>> {
     let resolver = DependencyResolver;
-    resolver.resolve_full_tree_async(client, name, version_range, seen).await
+    resolver
+        .resolve_full_tree_async(client, name, version_range, seen)
+        .await
 }

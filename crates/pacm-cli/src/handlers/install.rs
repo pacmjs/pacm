@@ -40,7 +40,7 @@ impl InstallHandler {
         for pkg in packages {
             let (name, version_range) = parse_package_spec(pkg);
             Self::print_install_header(pkg);
-            
+
             pacm_core::install_single_dep_enhanced(
                 ".",
                 &name,

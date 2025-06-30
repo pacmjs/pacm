@@ -1,6 +1,6 @@
 // Re-export public types and error handling
-pub mod error;
 pub mod download;
+pub mod error;
 pub mod install;
 pub mod linker;
 pub mod list;
@@ -18,7 +18,8 @@ use pacm_project::DependencyType;
 // Convenience functions for backward compatibility
 pub fn install_all_deps(project_dir: &str, debug: bool) -> anyhow::Result<()> {
     let manager = InstallManager::new();
-    manager.install_all_dependencies(project_dir, debug)
+    manager
+        .install_all_dependencies(project_dir, debug)
         .map_err(|e| anyhow::anyhow!(e))
 }
 
@@ -29,16 +30,18 @@ pub fn install_single_dep(
     debug: bool,
 ) -> anyhow::Result<()> {
     let manager = InstallManager::new();
-    manager.install_single_dependency(
-        project_dir,
-        name,
-        version_range,
-        DependencyType::Dependencies,
-        false, // save_exact
-        false, // no_save
-        false, // force
-        debug,
-    ).map_err(|e| anyhow::anyhow!(e))
+    manager
+        .install_single_dependency(
+            project_dir,
+            name,
+            version_range,
+            DependencyType::Dependencies,
+            false, // save_exact
+            false, // no_save
+            false, // force
+            debug,
+        )
+        .map_err(|e| anyhow::anyhow!(e))
 }
 
 pub fn install_single_dep_enhanced(
@@ -52,16 +55,18 @@ pub fn install_single_dep_enhanced(
     debug: bool,
 ) -> anyhow::Result<()> {
     let manager = InstallManager::new();
-    manager.install_single_dependency(
-        project_dir,
-        name,
-        version_range,
-        dep_type,
-        save_exact,
-        no_save,
-        force,
-        debug,
-    ).map_err(|e| anyhow::anyhow!(e))
+    manager
+        .install_single_dependency(
+            project_dir,
+            name,
+            version_range,
+            dep_type,
+            save_exact,
+            no_save,
+            force,
+            debug,
+        )
+        .map_err(|e| anyhow::anyhow!(e))
 }
 
 pub fn remove_dependency(
@@ -71,7 +76,8 @@ pub fn remove_dependency(
     debug: bool,
 ) -> anyhow::Result<()> {
     let manager = RemoveManager;
-    manager.remove_dependency(project_dir, name, dev_only, debug)
+    manager
+        .remove_dependency(project_dir, name, dev_only, debug)
         .map_err(|e| anyhow::anyhow!(e))
 }
 
@@ -81,12 +87,14 @@ pub fn update_dependencies(
     debug: bool,
 ) -> anyhow::Result<()> {
     let manager = UpdateManager::new();
-    manager.update_dependencies(project_dir, packages, debug)
+    manager
+        .update_dependencies(project_dir, packages, debug)
         .map_err(|e| anyhow::anyhow!(e))
 }
 
 pub fn list_dependencies(project_dir: &str, tree: bool, depth: Option<u32>) -> anyhow::Result<()> {
     let manager = ListManager;
-    manager.list_dependencies(project_dir, tree, depth)
+    manager
+        .list_dependencies(project_dir, tree, depth)
         .map_err(|e| anyhow::anyhow!(e))
 }

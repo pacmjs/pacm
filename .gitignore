@@ -1,2 +1,59 @@
-target
-example
+# Rust build artifacts
+/target/
+**/*.rs.bk
+*.pdb
+
+# Examples (keep examples in repo but ignore build artifacts)
+/example/*/target/
+/example/*/node_modules/
+
+# Cargo lock (uncomment if this is a library)
+# Cargo.lock
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Package manager files
+node_modules/
+.npm/
+.pnpm-store/
+bun.lockb
+
+# Log files
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+.tmp/
+.temp/
+
+# Cache directories
+.cache/
+.cargo-cache/
+
+# Test artifacts
+coverage/
+.coverage
+*.lcov
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Package outputs
+dist/
+build/
+out/
+
+# TODO: Add project-specific ignores as needed

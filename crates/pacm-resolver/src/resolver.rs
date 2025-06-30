@@ -2,9 +2,9 @@ use futures::future::join_all;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
-use pacm_registry::{fetch_package_info, fetch_package_info_async};
-use crate::semver::resolve_version;
 use crate::ResolvedPackage;
+use crate::semver::resolve_version;
+use pacm_registry::{fetch_package_info, fetch_package_info_async};
 
 pub struct DependencyResolver;
 
@@ -19,8 +19,9 @@ impl DependencyResolver {
 
         // Get package info from the registry
         let pkg_data = fetch_package_info(name)?;
-        let selected_version = resolve_version(&pkg_data.versions, version_range, &pkg_data.dist_tags)
-            .map_err(|e| anyhow::anyhow!("Cannot resolve version for {}: {}", name, e))?;
+        let selected_version =
+            resolve_version(&pkg_data.versions, version_range, &pkg_data.dist_tags)
+                .map_err(|e| anyhow::anyhow!("Cannot resolve version for {}: {}", name, e))?;
         let version_data = &pkg_data.versions[&selected_version];
 
         let key = format!("{}@{}", name, selected_version);
@@ -74,8 +75,9 @@ impl DependencyResolver {
 
         // Get package info from the registry (async)
         let pkg_data = fetch_package_info_async(client.clone(), name).await?;
-        let selected_version = resolve_version(&pkg_data.versions, version_range, &pkg_data.dist_tags)
-            .map_err(|e| anyhow::anyhow!("Cannot resolve version for {}: {}", name, e))?;
+        let selected_version =
+            resolve_version(&pkg_data.versions, version_range, &pkg_data.dist_tags)
+                .map_err(|e| anyhow::anyhow!("Cannot resolve version for {}: {}", name, e))?;
         let version_data = &pkg_data.versions[&selected_version];
 
         let key = format!("{}@{}", name, selected_version);
@@ -116,7 +118,8 @@ impl DependencyResolver {
             let client_clone = client.clone();
             let mut seen_clone = seen.clone();
             dep_tasks.push(async move {
-                self.resolve_full_tree_async(client_clone, &dep_name, &dep_range, &mut seen_clone).await
+                self.resolve_full_tree_async(client_clone, &dep_name, &dep_range, &mut seen_clone)
+                    .await
             });
         }
 
@@ -124,7 +127,9 @@ impl DependencyResolver {
         for dep_result in dep_results {
             match dep_result {
                 Ok(sub_packages) => resolved.extend(sub_packages),
-                Err(e) => pacm_logger::debug(&format!("Failed to resolve dependency: {}", e), false),
+                Err(e) => {
+                    pacm_logger::debug(&format!("Failed to resolve dependency: {}", e), false)
+                }
             }
         }
 

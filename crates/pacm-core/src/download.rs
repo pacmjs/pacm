@@ -29,7 +29,7 @@ impl PackageDownloader {
         for (current_package, pkg) in packages.iter().enumerate() {
             let current_package = current_package + 1;
             let key = format!("{}@{}", pkg.name, pkg.version);
-            
+
             if installed.contains(&key) {
                 pacm_logger::debug(&format!("Skipping already stored {}", key), debug);
                 continue;
@@ -95,7 +95,10 @@ impl PackageDownloader {
             }
             Err(e) => {
                 pacm_logger::debug(
-                    &format!("store_package failed for {}@{}: {}", pkg.name, pkg.version, e),
+                    &format!(
+                        "store_package failed for {}@{}: {}",
+                        pkg.name, pkg.version, e
+                    ),
                     debug,
                 );
                 Err(PackageManagerError::StorageFailed(
