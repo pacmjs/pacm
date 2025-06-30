@@ -10,6 +10,7 @@ workspace = true
 anyhow = "1.0"
 clap = { version = "4.4", features = ["derive"] }
 owo-colors = "4.0"
+inquire = "0.7"
 pacm-core = { path = "../pacm-core" }
 pacm-runtime = { path = "../pacm-runtime" }
 pacm-logger = { path = "../pacm-logger" }

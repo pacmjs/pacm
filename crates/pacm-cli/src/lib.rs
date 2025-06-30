@@ -41,6 +41,7 @@ pub fn run_cli() -> Result<()> {
                 )
             }
         }
+        Commands::Init { yes } => InitHandler::handle_init_project(yes),
         Commands::Run { script } => RunHandler::handle_run_script(script),
         Commands::Remove {
             packages,

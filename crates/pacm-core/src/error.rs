@@ -9,6 +9,7 @@ pub enum PackageManagerError {
     LinkingFailed(String, String),
     LockfileError(String),
     PackageJsonError(String),
+    PackageJsonExists(String),
     NetworkError(String),
     InvalidPackageSpec(String),
     DependencyConflict(String, String),
@@ -17,6 +18,9 @@ pub enum PackageManagerError {
 impl fmt::Display for PackageManagerError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            PackageManagerError::PackageJsonExists(path) => {
+                write!(f, "Package.json already exists at {}", path)
+            }
             PackageManagerError::PackageNotFound(name) => {
                 write!(f, "Package '{}' not found", name)
             }
@@ -52,5 +56,11 @@ impl fmt::Display for PackageManagerError {
 }
 
 impl std::error::Error for PackageManagerError {}
+
+impl From<anyhow::Error> for PackageManagerError {
+    fn from(err: anyhow::Error) -> Self {
+        PackageManagerError::PackageJsonError(err.to_string())
+    }
+}
 
 pub type Result<T> = std::result::Result<T, PackageManagerError>;

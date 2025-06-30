@@ -10,7 +10,7 @@ pub fn run_script(project_dir: &str, script_name: &str) -> anyhow::Result<()> {
 
     if let Some(scripts) = pkg.scripts {
         if let Some(script) = scripts.get(script_name) {
-            pacm_logger::info(&format!("Running script '{}'...", script_name));
+            pacm_logger::shell(script);
 
             // Use different command based on OS
             let status = if cfg!(target_os = "windows") {

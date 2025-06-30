@@ -1,6 +1,7 @@
 // Re-export public types and error handling
 pub mod download;
 pub mod error;
+pub mod init;
 pub mod install;
 pub mod linker;
 pub mod list;
@@ -8,12 +9,25 @@ pub mod remove;
 pub mod update;
 
 pub use error::{PackageManagerError, Result};
+pub use init::InitManager;
 pub use install::InstallManager;
 pub use list::ListManager;
 pub use remove::RemoveManager;
 pub use update::UpdateManager;
 
 use pacm_project::DependencyType;
+
+// Convenience function to initialize a project
+pub fn init_project(
+    project_dir: &str,
+    name: &str,
+    description: Option<&str>,
+    version: Option<&str>,
+    license: Option<&str>,
+) -> Result<()> {
+    let manager = InitManager::new();
+    manager.init_project(project_dir, name, description, version, license)
+}
 
 // Convenience functions for backward compatibility
 pub fn install_all_deps(project_dir: &str, debug: bool) -> anyhow::Result<()> {

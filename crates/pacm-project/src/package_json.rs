@@ -11,6 +11,8 @@ pub struct PackageJson {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub license: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub main: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub scripts: Option<IndexMap<String, String>>,
@@ -51,5 +53,12 @@ impl PackageJson {
         }
 
         all_deps
+    }
+
+    /// Save the package.json to a file
+    pub fn save(&self, path: &std::path::Path) -> Result<(), Box<dyn std::error::Error>> {
+        let content = serde_json::to_string_pretty(self)?;
+        std::fs::write(path, content)?;
+        Ok(())
     }
 }

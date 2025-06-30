@@ -16,6 +16,7 @@ pub enum LogLevel {
     Warning,
     Error,
     Debug,
+    Shell,
 }
 
 impl Logger {
@@ -96,6 +97,10 @@ impl Logger {
             ),
             LogLevel::Debug => (
                 "•".bright_black().bold().to_string(),
+                message.bright_black().to_string(),
+            ),
+            LogLevel::Shell => (
+                "$".bright_blue().bold().to_string(),
                 message.bright_black().to_string(),
             ),
         };
@@ -183,6 +188,10 @@ impl Logger {
             self.log(LogLevel::Debug, message);
         }
     }
+
+    pub fn shell(&self, command: &str) {
+        self.log(LogLevel::Shell, command);
+    }
 }
 
 /// Global logger instance using OnceLock for thread-safe initialization
@@ -235,6 +244,11 @@ pub fn error(message: &str) {
 /// Show a debug message (only if debug mode is enabled)
 pub fn debug(message: &str, debug_enabled: bool) {
     get_logger().debug(message, debug_enabled);
+}
+
+/// Show a shell command being executed
+pub fn shell(command: &str) {
+    get_logger().shell(command);
 }
 
 /// Show progress with spinner and counter

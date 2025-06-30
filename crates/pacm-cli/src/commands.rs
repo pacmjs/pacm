@@ -45,6 +45,13 @@ pub enum Commands {
         #[arg(long)]
         debug: bool,
     },
+    /// Initializes a new package.json file
+    #[command(alias = "new")]
+    Init {
+        // Skips interactive prompts
+        #[arg(short = 'y', long = "yes")]
+        yes: Option<bool>,
+    },
     /// Runs a script defined in package.json
     #[command(alias = "r")]
     Run {
