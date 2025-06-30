@@ -32,4 +32,14 @@ impl PacmLock {
     pub fn update_dep(&mut self, name: &str, dep: LockDependency) {
         self.dependencies.insert(name.to_string(), dep);
     }
+
+    pub fn get_dependency(&self, name: &str) -> Option<&LockDependency> {
+        self.dependencies.get(name)
+    }
+
+    pub fn has_all_dependencies(&self, required_deps: &[String]) -> bool {
+        required_deps
+            .iter()
+            .all(|dep| self.dependencies.contains_key(dep))
+    }
 }

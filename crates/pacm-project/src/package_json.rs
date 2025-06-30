@@ -41,7 +41,6 @@ pub enum DependencyType {
 }
 
 impl PackageJson {
-    /// Get all dependencies as a combined HashMap for compatibility
     pub fn get_all_dependencies(&self) -> HashMap<String, String> {
         let mut all_deps = HashMap::new();
 
@@ -55,7 +54,6 @@ impl PackageJson {
         all_deps
     }
 
-    /// Save the package.json to a file
     pub fn save(&self, path: &std::path::Path) -> Result<(), Box<dyn std::error::Error>> {
         let content = serde_json::to_string_pretty(self)?;
         std::fs::write(path, content)?;

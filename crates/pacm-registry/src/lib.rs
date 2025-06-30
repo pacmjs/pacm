@@ -2,12 +2,10 @@ use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-/// Fetches package info from the npm registry as JSON (async version)
 pub async fn fetch_package_info_async(
     client: Arc<reqwest::Client>,
     name: &str,
 ) -> anyhow::Result<PackageInfo> {
-    // URL-encode the package name to handle scoped packages like @types/node
     let encoded_name = urlencoding::encode(name);
     let url = format!("https://registry.npmjs.org/{}", encoded_name);
     let resp = client.get(&url).send().await?.error_for_status()?;
@@ -19,7 +17,6 @@ pub async fn fetch_package_info_async(
     })
 }
 
-/// Synchronous wrapper for backwards compatibility
 pub fn fetch_package_info(name: &str) -> anyhow::Result<PackageInfo> {
     let rt = tokio::runtime::Runtime::new()?;
     let client = Arc::new(reqwest::Client::new());

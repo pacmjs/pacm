@@ -10,7 +10,6 @@ use handlers::*;
 pub fn run_cli() -> Result<()> {
     let cli = Cli::parse();
 
-    // Initialize logger (quiet mode for now, could be a flag later)
     pacm_logger::init_logger(false);
 
     match &cli.command {

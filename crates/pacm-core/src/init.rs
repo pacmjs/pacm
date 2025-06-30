@@ -31,7 +31,6 @@ impl InitManager {
 
         pacm_logger::init_logger(false);
 
-        // Create a new PackageJson instead of reading an existing one
         let package_json = PackageJson {
             name: Some(name.to_string()),
             version: Some(version.unwrap_or("1.0.0").to_string()),

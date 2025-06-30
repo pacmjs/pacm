@@ -3,7 +3,6 @@ use std::{fs, io, path::Path};
 pub struct PackageLinker;
 
 impl PackageLinker {
-    /// Creates a symlink in the project to the global store
     pub fn link_package(
         project_node_modules: &Path,
         package_name: &str,
@@ -70,7 +69,6 @@ impl PackageLinker {
     }
 }
 
-// Backward compatibility function
 pub fn link_package(
     project_node_modules: &Path,
     package_name: &str,

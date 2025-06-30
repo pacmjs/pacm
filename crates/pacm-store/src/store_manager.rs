@@ -7,18 +7,15 @@ use std::{
 pub struct StoreManager;
 
 impl StoreManager {
-    /// Path to the central store (e.g., ~/.pacm/store)
     pub fn get_store_path() -> PathBuf {
         dirs::home_dir().unwrap().join(".pacm").join("store")
     }
 
-    /// Saves the package in the store and returns the store path
     pub fn store_package(
         package_name: &str,
         version: &str,
         tarball_bytes: &[u8],
     ) -> io::Result<PathBuf> {
-        // Calculate hash based on package name, version, and tarball content
         let hash = {
             let mut hasher = Sha256::new();
             hasher.update(tarball_bytes);
@@ -47,7 +44,6 @@ impl StoreManager {
     }
 
     fn extract_and_store_package(path: &Path, tarball_bytes: &[u8]) -> io::Result<()> {
-        // Extract tarball
         let temp_dir = tempfile::tempdir()?;
         let tar = flate2::read::GzDecoder::new(tarball_bytes);
         let mut archive = tar::Archive::new(tar);
@@ -79,7 +75,6 @@ impl StoreManager {
     }
 }
 
-// Backward compatibility functions
 pub fn get_store_path() -> PathBuf {
     StoreManager::get_store_path()
 }

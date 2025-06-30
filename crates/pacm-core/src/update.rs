@@ -44,8 +44,7 @@ impl UpdateManager {
         let all_deps = pkg.get_all_dependencies();
         for (name, _) in all_deps {
             pacm_logger::info(&format!("Checking updates for {}...", name));
-            // In a real implementation, you'd want to check for updates first
-            // For now, this is a placeholder
+            // TODO: Implement logic to check for updates
         }
 
         Ok(())
@@ -62,7 +61,6 @@ impl UpdateManager {
             pacm_logger::status(&format!("Updating {}...", package));
 
             if let Some(dep_type) = pkg.has_dependency(package) {
-                // Reinstall with latest version
                 self.install_manager.install_single_dependency(
                     project_dir,
                     package,

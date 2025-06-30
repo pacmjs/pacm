@@ -17,7 +17,6 @@ pub struct ResolvedPackage {
     pub dependencies: HashMap<String, String>, // Name => version range
 }
 
-// Backward compatibility functions
 pub fn resolve_full_tree(
     name: &str,
     version_range: &str,

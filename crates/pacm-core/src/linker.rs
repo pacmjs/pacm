@@ -137,6 +137,35 @@ impl PackageLinker {
         Ok(())
     }
 
+    pub fn update_lockfile_direct_only(
+        &self,
+        lock_path: &Path,
+        stored_packages: &HashMap<String, (ResolvedPackage, PathBuf)>,
+        direct_package_names: &HashSet<String>,
+    ) -> Result<()> {
+        let mut lockfile = PacmLock::load(lock_path)
+            .map_err(|e| PackageManagerError::LockfileError(e.to_string()))?;
+
+        for (_key, (pkg, _)) in stored_packages {
+            if direct_package_names.contains(&pkg.name) {
+                lockfile.update_dep(
+                    &pkg.name,
+                    LockDependency {
+                        version: pkg.version.clone(),
+                        resolved: pkg.resolved.clone(),
+                        integrity: pkg.integrity.clone(),
+                    },
+                );
+            }
+        }
+
+        lockfile
+            .save(lock_path)
+            .map_err(|e| PackageManagerError::LockfileError(e.to_string()))?;
+
+        Ok(())
+    }
+
     pub fn update_package_json(
         &self,
         project_dir: &Path,
@@ -154,5 +183,19 @@ impl PackageLinker {
             .map_err(|e| PackageManagerError::PackageJsonError(e.to_string()))?;
 
         Ok(())
+    }
+
+    // Load dependencies from lockfile for smart installation
+    pub fn load_lockfile_dependencies(
+        &self,
+        lock_path: &Path,
+    ) -> Result<HashMap<String, LockDependency>> {
+        if lock_path.exists() {
+            let lockfile = PacmLock::load(lock_path)
+                .map_err(|e| PackageManagerError::LockfileError(e.to_string()))?;
+            Ok(lockfile.dependencies)
+        } else {
+            Ok(HashMap::new())
+        }
     }
 }

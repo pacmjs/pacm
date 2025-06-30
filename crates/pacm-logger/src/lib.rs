@@ -28,7 +28,6 @@ impl Logger {
         }
     }
 
-    /// Clear the current line and move cursor to beginning
     fn clear_current_line(&self) {
         if self.quiet {
             return;
@@ -40,7 +39,6 @@ impl Logger {
         let _ = stdout.flush();
     }
 
-    /// Replace the current line with new content (Bun-style single line updates)
     pub fn update_line(&self, message: &str) {
         if self.quiet {
             return;
@@ -55,7 +53,6 @@ impl Logger {
         }
     }
 
-    /// Show a final message and clear the updating line
     pub fn finish_line(&self, message: &str) {
         if self.quiet {
             return;
@@ -69,13 +66,11 @@ impl Logger {
         }
     }
 
-    /// Print a permanent log message (does not get replaced)
     pub fn log(&self, level: LogLevel, message: &str) {
         if self.quiet && !matches!(level, LogLevel::Error) {
             return;
         }
 
-        // Clear any updating line first
         self.clear_current_line();
 
         let (prefix, colored_message) = match level {
@@ -112,7 +107,6 @@ impl Logger {
         }
     }
 
-    /// Show the final completion message with elapsed time
     pub fn finish(&self, message: &str) {
         let elapsed = self.start_time.elapsed();
         let time_str = if elapsed.as_millis() < 1000 {
@@ -130,14 +124,11 @@ impl Logger {
 
         self.finish_line(&final_message);
     }
-
-    /// Show progress with a spinner and counter
     pub fn progress(&self, message: &str, current: usize, total: usize) {
         if self.quiet {
             return;
         }
 
-        // Use different spinner frames for smooth animation
         let spinners = ["◐", "◓", "◑", "◒"];
         let spinner = spinners[current % spinners.len()];
 
@@ -156,7 +147,6 @@ impl Logger {
         self.update_line(&progress_text);
     }
 
-    /// Show a simple updating status message
     pub fn status(&self, message: &str) {
         if self.quiet {
             return;
@@ -166,7 +156,6 @@ impl Logger {
         self.update_line(&status_msg);
     }
 
-    // Convenience methods
     pub fn info(&self, message: &str) {
         self.log(LogLevel::Info, message);
     }
@@ -194,74 +183,58 @@ impl Logger {
     }
 }
 
-/// Global logger instance using OnceLock for thread-safe initialization
 static LOGGER: OnceLock<Logger> = OnceLock::new();
 
-/// Initialize the global logger
 pub fn init_logger(quiet: bool) {
     let _ = LOGGER.set(Logger::new(quiet));
 }
 
-/// Get the global logger instance
 fn get_logger() -> &'static Logger {
     LOGGER
         .get()
         .expect("Logger not initialized. Call init_logger() first.")
 }
 
-// Global convenience functions for easy usage throughout the codebase
-
-/// Replace the current line with new content (main function for Bun-style logging)
 pub fn update_line(message: &str) {
     get_logger().update_line(message);
 }
 
-/// Show a simple status message that updates in place
 pub fn status(message: &str) {
     get_logger().status(message);
 }
 
-/// Show a permanent info message
 pub fn info(message: &str) {
     get_logger().info(message);
 }
 
-/// Show a permanent success message
 pub fn success(message: &str) {
     get_logger().success(message);
 }
 
-/// Show a permanent warning message
 pub fn warn(message: &str) {
     get_logger().warn(message);
 }
 
-/// Show a permanent error message
 pub fn error(message: &str) {
     get_logger().error(message);
 }
 
-/// Show a debug message (only if debug mode is enabled)
 pub fn debug(message: &str, debug_enabled: bool) {
     get_logger().debug(message, debug_enabled);
 }
 
-/// Show a shell command being executed
 pub fn shell(command: &str) {
     get_logger().shell(command);
 }
 
-/// Show progress with spinner and counter
 pub fn progress(message: &str, current: usize, total: usize) {
     get_logger().progress(message, current, total);
 }
 
-/// Show the final completion message and clear any updating lines
 pub fn finish(message: &str) {
     get_logger().finish(message);
 }
 
-/// Show a final message without timing information
 pub fn finish_line(message: &str) {
     get_logger().finish_line(message);
 }

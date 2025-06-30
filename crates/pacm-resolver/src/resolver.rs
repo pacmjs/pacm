@@ -17,7 +17,6 @@ impl DependencyResolver {
     ) -> anyhow::Result<Vec<ResolvedPackage>> {
         let mut resolved = vec![];
 
-        // Get package info from the registry
         let pkg_data = fetch_package_info(name)?;
         let selected_version =
             resolve_version(&pkg_data.versions, version_range, &pkg_data.dist_tags)
@@ -73,7 +72,6 @@ impl DependencyResolver {
     ) -> anyhow::Result<Vec<ResolvedPackage>> {
         let mut resolved = vec![];
 
-        // Get package info from the registry (async)
         let pkg_data = fetch_package_info_async(client.clone(), name).await?;
         let selected_version =
             resolve_version(&pkg_data.versions, version_range, &pkg_data.dist_tags)
@@ -112,7 +110,6 @@ impl DependencyResolver {
 
         resolved.push(resolved_pkg);
 
-        // Resolve dependencies in parallel
         let mut dep_tasks = Vec::new();
         for (dep_name, dep_range) in dependencies {
             let client_clone = client.clone();

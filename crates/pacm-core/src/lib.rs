@@ -17,7 +17,6 @@ pub use update::UpdateManager;
 
 use pacm_project::DependencyType;
 
-// Convenience function to initialize a project
 pub fn init_project(
     project_dir: &str,
     name: &str,
@@ -29,7 +28,6 @@ pub fn init_project(
     manager.init_project(project_dir, name, description, version, license)
 }
 
-// Convenience functions for backward compatibility
 pub fn install_all_deps(project_dir: &str, debug: bool) -> anyhow::Result<()> {
     let manager = InstallManager::new();
     manager

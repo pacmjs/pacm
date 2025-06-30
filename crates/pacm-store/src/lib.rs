@@ -6,6 +6,5 @@ pub use package_linker::PackageLinker;
 pub use path_resolver::PathResolver;
 pub use store_manager::StoreManager;
 
-// Re-export for backward compatibility
 pub use package_linker::link_package;
 pub use store_manager::{get_store_path, store_package};

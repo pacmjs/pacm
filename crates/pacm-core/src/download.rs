@@ -31,24 +31,78 @@ impl PackageDownloader {
             let key = format!("{}@{}", pkg.name, pkg.version);
 
             if installed.contains(&key) {
-                pacm_logger::debug(&format!("Skipping already stored {}", key), debug);
+                pacm_logger::debug(&format!("Skipping already processed {}", key), debug);
                 continue;
             }
             installed.insert(key.clone());
 
-            pacm_logger::progress(
-                &format!("Downloading {}", pkg.name),
-                current_package,
-                total_packages,
-            );
+            // Smart caching: Check if package already exists in store before downloading
+            let store_path =
+                if let Some(existing_path) = self.check_existing_in_store(pkg, debug)? {
+                    pacm_logger::debug(&format!("Found {} in store cache", key), debug);
+                    existing_path
+                } else {
+                    pacm_logger::progress(
+                        &format!("Downloading {}", pkg.name),
+                        current_package,
+                        total_packages,
+                    );
 
-            let tarball_bytes = self.download_tarball(pkg, debug)?;
-            let store_path = self.store_package(pkg, &tarball_bytes, debug)?;
+                    let tarball_bytes = self.download_tarball(pkg, debug)?;
+                    self.store_package(pkg, &tarball_bytes, debug)?
+                };
 
             stored_packages.insert(key, (pkg.clone(), store_path));
         }
 
         Ok(stored_packages)
+    }
+
+    fn check_existing_in_store(
+        &self,
+        pkg: &ResolvedPackage,
+        debug: bool,
+    ) -> Result<Option<std::path::PathBuf>> {
+        use pacm_store::get_store_path;
+
+        let store_base = get_store_path();
+        let safe_package_name = if pkg.name.starts_with('@') {
+            pkg.name.replace('@', "_at_").replace('/', "_slash_")
+        } else {
+            pkg.name.to_string()
+        };
+
+        let npm_dir = store_base.join("npm");
+        if !npm_dir.exists() {
+            return Ok(None);
+        }
+
+        let package_prefix = format!("{safe_package_name}@{}-", pkg.version);
+
+        match std::fs::read_dir(&npm_dir) {
+            Ok(entries) => {
+                for entry in entries {
+                    if let Ok(entry) = entry {
+                        let dir_name = entry.file_name();
+                        if let Some(name_str) = dir_name.to_str() {
+                            if name_str.starts_with(&package_prefix) {
+                                let store_path = entry.path();
+                                if store_path.is_dir() && store_path.join("package").exists() {
+                                    pacm_logger::debug(
+                                        &format!("Found existing store entry: {}", name_str),
+                                        debug,
+                                    );
+                                    return Ok(Some(store_path));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            Err(_) => return Ok(None),
+        }
+
+        Ok(None)
     }
 
     fn download_tarball(&self, pkg: &ResolvedPackage, debug: bool) -> Result<Vec<u8>> {

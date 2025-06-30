@@ -1,6 +1,5 @@
 use semver::Version;
 
-/// Custom npm-compatible semver range comparator
 #[derive(Debug, Clone)]
 pub enum Comparator {
     Exact(Version),
@@ -50,7 +49,6 @@ impl Comparator {
     }
 }
 
-/// A range is a collection of comparators that all must match (AND logic)
 #[derive(Debug, Clone)]
 pub struct Range {
     pub comparators: Vec<Comparator>,

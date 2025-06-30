@@ -19,7 +19,6 @@ impl RemoveManager {
         let mut pkg = read_package_json(&path)
             .map_err(|e| PackageManagerError::PackageJsonError(e.to_string()))?;
 
-        // Check if package exists
         if pkg.has_dependency(name).is_none() {
             pacm_logger::error(&format!("Package '{}' is not installed", name));
             return Ok(());
@@ -27,7 +26,6 @@ impl RemoveManager {
 
         pacm_logger::status(&format!("Removing {}...", name));
 
-        // Remove from package.json
         if dev_only {
             if let Some(dev_deps) = &mut pkg.dev_dependencies {
                 dev_deps.shift_remove(name);
@@ -36,13 +34,10 @@ impl RemoveManager {
             pkg.remove_dependency(name);
         }
 
-        // Remove from node_modules
         self.remove_from_node_modules(&path, name, debug)?;
 
-        // Update lock file
         self.update_lockfile_after_removal(&path, name)?;
 
-        // Save package.json
         write_package_json(&path, &pkg)
             .map_err(|e| PackageManagerError::PackageJsonError(e.to_string()))?;
 
