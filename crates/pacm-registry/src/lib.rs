@@ -1,17 +1,30 @@
-use reqwest::blocking::get;
+use reqwest;
 use serde_json::Value;
 use std::collections::HashMap;
+use std::sync::Arc;
 
-/// Fetches package info from the npm registry as JSON
-pub fn fetch_package_info(name: &str) -> anyhow::Result<PackageInfo> {
-    let url = format!("https://registry.npmjs.org/{}", name);
-    let resp = get(&url)?.error_for_status()?;
-    let json: Value = resp.json()?;
+/// Fetches package info from the npm registry as JSON (async version)
+pub async fn fetch_package_info_async(
+    client: Arc<reqwest::Client>,
+    name: &str,
+) -> anyhow::Result<PackageInfo> {
+    // URL-encode the package name to handle scoped packages like @types/node
+    let encoded_name = urlencoding::encode(name);
+    let url = format!("https://registry.npmjs.org/{}", encoded_name);
+    let resp = client.get(&url).send().await?.error_for_status()?;
+    let json: Value = resp.json().await?;
     let dist_tags: HashMap<String, String> = serde_json::from_value(json["dist-tags"].clone())?;
     Ok(PackageInfo {
         versions: json["versions"].clone(),
         dist_tags,
     })
+}
+
+/// Synchronous wrapper for backwards compatibility
+pub fn fetch_package_info(name: &str) -> anyhow::Result<PackageInfo> {
+    let rt = tokio::runtime::Runtime::new()?;
+    let client = Arc::new(reqwest::Client::new());
+    rt.block_on(fetch_package_info_async(client, name))
 }
 
 pub struct PackageInfo {

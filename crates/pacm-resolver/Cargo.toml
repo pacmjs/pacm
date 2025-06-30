@@ -8,3 +8,7 @@ anyhow = "1.0"
 semver = "1.0"
 serde_json = "1.0"
 pacm-registry = { path = "../pacm-registry" }
+pacm-logger = { path = "../pacm-logger" }
+tokio = { version = "1.0", features = ["full"] }
+futures = "0.3"
+reqwest = { version = "0.12", features = ["json"] }

@@ -6,3 +6,4 @@ edition = "2024"
 [dependencies]
 anyhow = "1.0"
 pacm-project = { path = "../pacm-project" }
+pacm-logger = { path = "../pacm-logger" }

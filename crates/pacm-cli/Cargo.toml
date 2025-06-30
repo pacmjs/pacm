@@ -6,5 +6,9 @@ edition = "2024"
 [dependencies]
 anyhow = "1.0"
 clap = { version = "4.4", features = ["derive"] }
+owo-colors = "4.0"
 pacm-core = { path = "../pacm-core" }
 pacm-runtime = { path = "../pacm-runtime" }
+pacm-logger = { path = "../pacm-logger" }
+pacm-utils = { path = "../pacm-utils" }
+pacm-project = { path = "../pacm-project" }

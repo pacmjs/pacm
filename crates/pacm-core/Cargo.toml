@@ -13,3 +13,4 @@ pacm-store = { path = "../pacm-store" }
 pacm-resolver = { path = "../pacm-resolver" }
 pacm-lock = { path = "../pacm-lock" }
 pacm-project = { path = "../pacm-project" }
+pacm-logger = { path = "../pacm-logger" }

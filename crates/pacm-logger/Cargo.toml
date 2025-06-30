@@ -1,0 +1,9 @@
+[package]
+name = "pacm-logger"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+owo-colors = "4.0"
+std-semaphore = "0.1"
+crossterm = "0.27"
