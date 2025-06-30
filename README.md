@@ -11,7 +11,8 @@
 </div>
 </div>
 
-> [!WARNING] PACM is currently in its early stages of development and is highly experimental. This project is not yet ready for production use and the API is subject to significant changes.
+> [!WARNING]
+> PACM is currently in its early stages of development and is highly experimental. This project is not yet ready for production use and the API is subject to significant changes.
 
 PACM is a modern package manager written in Rust, designed to provide fast, reliable, and secure package management capabilities.
 
