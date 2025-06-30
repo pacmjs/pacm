@@ -1,4 +1,4 @@
-use crossterm::{cursor, terminal, ExecutableCommand};
+use crossterm::{ExecutableCommand, cursor, terminal};
 use owo_colors::OwoColorize;
 use std::io::{self, Write};
 use std::sync::{Arc, Mutex, OnceLock};

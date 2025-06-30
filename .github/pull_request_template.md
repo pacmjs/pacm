@@ -61,7 +61,6 @@ Add screenshots or demo output if your changes affect the user interface or outp
 **Dependencies:**
 - [ ] I have not introduced unnecessary dependencies
 - [ ] Any new dependencies have been discussed and approved
-- [ ] I have run `cargo deny check` to verify licensing and security
 
 ## 🔒 Security Considerations
 

@@ -48,7 +48,6 @@ Current best-effort timeline:
 ### Current Security Practices
 
 - [x] Dependency vulnerability scanning with `cargo audit`
-- [x] License and security policy enforcement with `cargo deny`
 - [ ] **TODO**: Automated security testing in CI
 - [ ] **TODO**: Static analysis security scanning
 - [ ] **TODO**: Fuzzing for critical components
@@ -61,9 +60,6 @@ We monitor security advisories for all dependencies:
 ```bash
 # Check for known vulnerabilities
 cargo audit
-
-# Check licensing and other policies
-cargo deny check
 ```
 
 ### TODO: Additional Security Measures
@@ -107,7 +103,6 @@ As a package manager, PACM faces unique security challenges:
 ### Security Tools
 
 - [`cargo audit`](https://docs.rs/cargo-audit/) - Vulnerability scanning
-- [`cargo deny`](https://embarkstudios.github.io/cargo-deny/) - License and security policy enforcement
 
 ## 🤝 Security Community
 

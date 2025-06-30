@@ -92,12 +92,6 @@ cargo fmt
 cargo clippy
 ```
 
-### Security Audit
-
-```bash
-cargo deny check
-```
-
 ## 📋 TODO
 
 ### Core Features

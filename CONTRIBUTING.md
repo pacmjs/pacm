@@ -74,9 +74,6 @@ cargo fmt
 
 # Run clippy
 cargo clippy
-
-# Run security audit
-cargo deny check
 ```
 
 ### TODO: Code Standards
@@ -128,7 +125,6 @@ For now, please open GitHub issues with:
 
 - Report security vulnerabilities privately via GitHub security advisories
 - Do not open public issues for security problems
-- Use `cargo audit` and `cargo deny` for dependency security
 
 ## 📖 Documentation
 
