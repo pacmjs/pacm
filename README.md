@@ -1,10 +1,17 @@
-# <picture><source srcset="assets/logo.png" /></picture>&nbsp;PACM (Package Manager)
+<div align="center">
+<img src="./assets/logo.png" width="100" height="100" />
+<h1>PACM (Package Manager)</h1>
+
+<div style="display: flex; justify-content: center; gap: 8px; flex-wrap: wrap;">
 
 ![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 ![Rust](https://img.shields.io/badge/rust-1.85+-orange)
 
-> ⚠️ **EXPERIMENTAL PROJECT**: PACM is currently in its early stages of development and is highly experimental. This project is not yet ready for production use and the API is subject to significant changes.
+</div>
+</div>
+
+> [!WARNING] PACM is currently in its early stages of development and is highly experimental. This project is not yet ready for production use and the API is subject to significant changes.
 
 PACM is a modern package manager written in Rust, designed to provide fast, reliable, and secure package management capabilities.
 
