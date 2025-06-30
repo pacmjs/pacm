@@ -1122,6 +1122,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "indexmap",
+ "pacm-error",
  "pacm-lock",
  "pacm-logger",
  "pacm-project",
@@ -1131,6 +1132,13 @@ dependencies = [
  "serde",
  "serde_json",
  "urlencoding",
+]
+
+[[package]]
+name = "pacm-error"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
 ]
 
 [[package]]

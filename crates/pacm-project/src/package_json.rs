@@ -27,7 +27,7 @@ pub struct PackageJson {
         skip_serializing_if = "Option::is_none"
     )]
     pub optional_dependencies: Option<IndexMap<String, String>>,
-    // Catch-all for other fields to preserve them
+    
     #[serde(flatten)]
     pub other: IndexMap<String, serde_json::Value>,
 }

@@ -3,12 +3,12 @@ use std::path::PathBuf;
 use std::process::Command;
 
 use crate::download::PackageDownloader;
-use crate::error::{PackageManagerError, Result};
 use crate::linker::PackageLinker;
 use pacm_lock::PacmLock;
 use pacm_logger;
 use pacm_project::{DependencyType, read_package_json};
 use pacm_resolver::{ResolvedPackage, resolve_full_tree};
+use pacm_error::{PackageManagerError, Result};
 use pacm_store::get_store_path;
 
 pub struct InstallManager {

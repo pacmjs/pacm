@@ -1,10 +1,10 @@
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
-use crate::error::{PackageManagerError, Result};
 use pacm_lock::{LockDependency, PacmLock};
 use pacm_logger;
 use pacm_project::{DependencyType, read_package_json, write_package_json};
+use pacm_error::{PackageManagerError, Result};
 use pacm_resolver::ResolvedPackage;
 use pacm_store::link_package;
 
@@ -185,7 +185,6 @@ impl PackageLinker {
         Ok(())
     }
 
-    // Load dependencies from lockfile for smart installation
     pub fn load_lockfile_dependencies(
         &self,
         lock_path: &Path,

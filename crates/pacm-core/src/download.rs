@@ -1,10 +1,10 @@
 use reqwest;
 use std::collections::HashMap;
 
-use crate::error::{PackageManagerError, Result};
 use pacm_logger;
 use pacm_resolver::ResolvedPackage;
 use pacm_store::store_package;
+use pacm_error::{PackageManagerError, Result};
 
 pub struct PackageDownloader {
     client: reqwest::blocking::Client,
@@ -36,7 +36,6 @@ impl PackageDownloader {
             }
             installed.insert(key.clone());
 
-            // Smart caching: Check if package already exists in store before downloading
             let store_path =
                 if let Some(existing_path) = self.check_existing_in_store(pkg, debug)? {
                     pacm_logger::debug(&format!("Found {} in store cache", key), debug);

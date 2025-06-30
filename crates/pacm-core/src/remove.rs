@@ -1,9 +1,9 @@
 use std::path::PathBuf;
 
-use crate::error::{PackageManagerError, Result};
 use pacm_lock::PacmLock;
 use pacm_logger;
 use pacm_project::{read_package_json, write_package_json};
+use pacm_error::{PackageManagerError, Result};
 
 pub struct RemoveManager;
 
