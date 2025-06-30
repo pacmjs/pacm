@@ -1,8 +1,26 @@
-use std::{fs, io, path::Path};
+use rayon::prelude::*;
+use std::{collections::HashMap, fs, io, path::Path};
 
 pub struct PackageLinker;
 
 impl PackageLinker {
+    pub fn link_packages_batch(
+        project_node_modules: &Path,
+        packages: &HashMap<String, &Path>,
+    ) -> io::Result<()> {
+        fs::create_dir_all(project_node_modules)?;
+
+        let results: Result<Vec<_>, _> = packages
+            .par_iter()
+            .map(|(package_name, store_path)| {
+                Self::link_package(project_node_modules, package_name, store_path)
+            })
+            .collect();
+
+        results?;
+        Ok(())
+    }
+
     pub fn link_package(
         project_node_modules: &Path,
         package_name: &str,

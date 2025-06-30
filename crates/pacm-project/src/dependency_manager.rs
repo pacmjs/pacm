@@ -4,7 +4,7 @@ use indexmap::IndexMap;
 pub struct DependencyManager;
 
 impl DependencyManager {
-    pub fn add_dependency(
+    pub fn add_dep(
         package_json: &mut PackageJson,
         name: &str,
         version: &str,
@@ -19,7 +19,7 @@ impl DependencyManager {
             format!("^{}", version)
         };
 
-        Self::remove_dependency(package_json, name);
+        Self::remove_dep(package_json, name);
 
         match dep_type {
             DependencyType::Dependencies => {
@@ -49,7 +49,7 @@ impl DependencyManager {
         }
     }
 
-    pub fn remove_dependency(package_json: &mut PackageJson, name: &str) {
+    pub fn remove_dep(package_json: &mut PackageJson, name: &str) {
         if let Some(deps) = &mut package_json.dependencies {
             deps.shift_remove(name);
         }
@@ -64,7 +64,7 @@ impl DependencyManager {
         }
     }
 
-    pub fn has_dependency(package_json: &PackageJson, name: &str) -> Option<DependencyType> {
+    pub fn has_dep(package_json: &PackageJson, name: &str) -> Option<DependencyType> {
         if let Some(deps) = &package_json.dependencies {
             if deps.contains_key(name) {
                 return Some(DependencyType::Dependencies);

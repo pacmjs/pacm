@@ -1,4 +1,4 @@
-pub fn parse_package_spec(spec: &str) -> (String, String) {
+pub fn parse_pkg_spec(spec: &str) -> (String, String) {
     if spec.starts_with('@') {
         if let Some(scope_end) = spec[1..].find('/') {
             let scope_and_name_end = scope_end + 2;

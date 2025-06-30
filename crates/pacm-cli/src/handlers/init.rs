@@ -7,7 +7,7 @@ use pacm_core;
 pub struct InitHandler;
 
 impl InitHandler {
-    pub fn handle_init_project(yes: &Option<bool>) -> Result<()> {
+    pub fn init_project(yes: &Option<bool>) -> Result<()> {
         let current_dir = env::current_dir()?;
         let default_name = current_dir
             .file_name()

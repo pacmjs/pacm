@@ -14,14 +14,14 @@ impl PackageJson {
         dep_type: DependencyType,
         save_exact: bool,
     ) {
-        DependencyManager::add_dependency(self, name, version, dep_type, save_exact);
+        DependencyManager::add_dep(self, name, version, dep_type, save_exact);
     }
 
     pub fn remove_dependency(&mut self, name: &str) {
-        DependencyManager::remove_dependency(self, name);
+        DependencyManager::remove_dep(self, name);
     }
 
     pub fn has_dependency(&self, name: &str) -> Option<DependencyType> {
-        DependencyManager::has_dependency(self, name)
+        DependencyManager::has_dep(self, name)
     }
 }

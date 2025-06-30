@@ -8,7 +8,7 @@ pub struct UpdateHandler;
 impl UpdateHandler {
     pub fn handle_update_packages(packages: &[String], debug: bool) -> Result<()> {
         Self::print_update_header();
-        pacm_core::update_dependencies(".", packages, debug)
+        pacm_core::update_deps(".", packages, debug)
     }
 
     fn print_update_header() {

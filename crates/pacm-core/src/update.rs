@@ -1,9 +1,9 @@
 use std::path::PathBuf;
 
 use crate::install::InstallManager;
+use pacm_error::{PackageManagerError, Result};
 use pacm_logger;
 use pacm_project::read_package_json;
-use pacm_error::{PackageManagerError, Result};
 
 pub struct UpdateManager {
     install_manager: InstallManager,
@@ -61,7 +61,7 @@ impl UpdateManager {
             pacm_logger::status(&format!("Updating {}...", package));
 
             if let Some(dep_type) = pkg.has_dependency(package) {
-                self.install_manager.install_single_dependency(
+                self.install_manager.install_single(
                     project_dir,
                     package,
                     "latest",

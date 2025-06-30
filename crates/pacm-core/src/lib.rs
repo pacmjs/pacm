@@ -12,8 +12,8 @@ pub use list::ListManager;
 pub use remove::RemoveManager;
 pub use update::UpdateManager;
 
-use pacm_project::DependencyType;
 use pacm_error::Result;
+use pacm_project::DependencyType;
 
 pub fn init_project(
     project_dir: &str,
@@ -26,14 +26,14 @@ pub fn init_project(
     manager.init_project(project_dir, name, description, version, license)
 }
 
-pub fn install_all_deps(project_dir: &str, debug: bool) -> anyhow::Result<()> {
+pub fn install_all(project_dir: &str, debug: bool) -> anyhow::Result<()> {
     let manager = InstallManager::new();
     manager
-        .install_all_dependencies(project_dir, debug)
+        .install_all(project_dir, debug)
         .map_err(|e| anyhow::anyhow!(e))
 }
 
-pub fn install_single_dep(
+pub fn install_single(
     project_dir: &str,
     name: &str,
     version_range: &str,
@@ -41,7 +41,7 @@ pub fn install_single_dep(
 ) -> anyhow::Result<()> {
     let manager = InstallManager::new();
     manager
-        .install_single_dependency(
+        .install_single(
             project_dir,
             name,
             version_range,
@@ -54,7 +54,7 @@ pub fn install_single_dep(
         .map_err(|e| anyhow::anyhow!(e))
 }
 
-pub fn install_single_dep_enhanced(
+pub fn install_single_enhanced(
     project_dir: &str,
     name: &str,
     version_range: &str,
@@ -66,7 +66,7 @@ pub fn install_single_dep_enhanced(
 ) -> anyhow::Result<()> {
     let manager = InstallManager::new();
     manager
-        .install_single_dependency(
+        .install_single(
             project_dir,
             name,
             version_range,
@@ -79,7 +79,7 @@ pub fn install_single_dep_enhanced(
         .map_err(|e| anyhow::anyhow!(e))
 }
 
-pub fn remove_dependency(
+pub fn remove_dep(
     project_dir: &str,
     name: &str,
     dev_only: bool,
@@ -91,18 +91,14 @@ pub fn remove_dependency(
         .map_err(|e| anyhow::anyhow!(e))
 }
 
-pub fn update_dependencies(
-    project_dir: &str,
-    packages: &[String],
-    debug: bool,
-) -> anyhow::Result<()> {
+pub fn update_deps(project_dir: &str, packages: &[String], debug: bool) -> anyhow::Result<()> {
     let manager = UpdateManager::new();
     manager
         .update_dependencies(project_dir, packages, debug)
         .map_err(|e| anyhow::anyhow!(e))
 }
 
-pub fn list_dependencies(project_dir: &str, tree: bool, depth: Option<u32>) -> anyhow::Result<()> {
+pub fn list_deps(project_dir: &str, tree: bool, depth: Option<u32>) -> anyhow::Result<()> {
     let manager = ListManager;
     manager
         .list_dependencies(project_dir, tree, depth)

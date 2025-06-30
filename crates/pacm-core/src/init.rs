@@ -1,9 +1,9 @@
 use indexmap::IndexMap;
 use std::path::Path;
 
+use pacm_error::{PackageManagerError, Result};
 use pacm_logger;
 use pacm_project::PackageJson;
-use pacm_error::{PackageManagerError, Result};
 
 pub struct InitManager;
 

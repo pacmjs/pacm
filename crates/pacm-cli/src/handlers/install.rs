@@ -4,22 +4,22 @@ use owo_colors::OwoColorize;
 use pacm_core;
 use pacm_logger;
 use pacm_project::DependencyType;
-use pacm_utils::parse_package_spec;
+use pacm_utils::parse_pkg_spec;
 
 pub struct InstallHandler;
 
 impl InstallHandler {
-    pub fn handle_install_all(debug: bool) -> Result<()> {
+    pub fn install_all(debug: bool) -> Result<()> {
         println!(
             "{} {}",
             "pacm".bright_cyan().bold(),
             "install".bright_white()
         );
         println!();
-        pacm_core::install_all_deps(".", debug)
+        pacm_core::install_all(".", debug)
     }
 
-    pub fn handle_install_packages(
+    pub fn install_pkgs(
         packages: &[String],
         dev: bool,
         optional: bool,
@@ -30,7 +30,7 @@ impl InstallHandler {
         force: bool,
         debug: bool,
     ) -> Result<()> {
-        let dep_type = Self::determine_dependency_type(dev, optional, peer);
+        let dep_type = Self::get_dep_type(dev, optional, peer);
 
         if global {
             pacm_logger::error("Global installation is not yet supported");
@@ -38,10 +38,10 @@ impl InstallHandler {
         }
 
         for pkg in packages {
-            let (name, version_range) = parse_package_spec(pkg);
-            Self::print_install_header(pkg);
+            let (name, version_range) = parse_pkg_spec(pkg);
+            Self::print_header(pkg);
 
-            pacm_core::install_single_dep_enhanced(
+            pacm_core::install_single_enhanced(
                 ".",
                 &name,
                 &version_range,
@@ -56,7 +56,7 @@ impl InstallHandler {
         Ok(())
     }
 
-    fn determine_dependency_type(dev: bool, optional: bool, peer: bool) -> DependencyType {
+    fn get_dep_type(dev: bool, optional: bool, peer: bool) -> DependencyType {
         if dev {
             DependencyType::DevDependencies
         } else if optional {
@@ -68,11 +68,11 @@ impl InstallHandler {
         }
     }
 
-    fn print_install_header(package: &str) {
+    fn print_header(package: &str) {
         println!(
             "{} {} {}",
             "pacm".bright_cyan().bold(),
-            "add".bright_white(),
+            "install".bright_white(),
             package.bright_white()
         );
         println!();

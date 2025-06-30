@@ -8,11 +8,7 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "express": "^5.1.0",
-    "chalk": "^5.4.1"
-  },
-  "devDependencies": {
-    "prettier": "^3.6.2"
+    "express": "^latest"
   },
   "type": "module"
 }

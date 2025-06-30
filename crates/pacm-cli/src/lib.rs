@@ -25,9 +25,9 @@ pub fn run_cli() -> Result<()> {
             debug,
         } => {
             if packages.is_empty() {
-                InstallHandler::handle_install_all(*debug)
+                InstallHandler::install_all(*debug)
             } else {
-                InstallHandler::handle_install_packages(
+                InstallHandler::install_pkgs(
                     packages,
                     *dev,
                     *optional,
@@ -40,7 +40,7 @@ pub fn run_cli() -> Result<()> {
                 )
             }
         }
-        Commands::Init { yes } => InitHandler::handle_init_project(yes),
+        Commands::Init { yes } => InitHandler::init_project(yes),
         Commands::Run { script } => RunHandler::handle_run_script(script),
         Commands::Remove {
             packages,

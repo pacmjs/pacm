@@ -9,7 +9,7 @@ impl RemoveHandler {
     pub fn handle_remove_packages(packages: &[String], dev: bool, debug: bool) -> Result<()> {
         for package in packages {
             Self::print_remove_header(package);
-            pacm_core::remove_dependency(".", package, dev, debug)?;
+            pacm_core::remove_dep(".", package, dev, debug)?;
         }
         Ok(())
     }

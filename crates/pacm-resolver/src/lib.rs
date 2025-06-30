@@ -8,7 +8,7 @@ pub mod version_utils;
 
 pub use resolver::DependencyResolver;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct ResolvedPackage {
     pub name: String,
     pub version: String,
@@ -22,7 +22,7 @@ pub fn resolve_full_tree(
     version_range: &str,
     seen: &mut HashSet<String>,
 ) -> anyhow::Result<Vec<ResolvedPackage>> {
-    let resolver = DependencyResolver;
+    let resolver = DependencyResolver::new();
     resolver.resolve_full_tree(name, version_range, seen)
 }
 
@@ -32,7 +32,7 @@ pub async fn resolve_full_tree_async(
     version_range: &str,
     seen: &mut HashSet<String>,
 ) -> anyhow::Result<Vec<ResolvedPackage>> {
-    let resolver = DependencyResolver;
+    let resolver = DependencyResolver::new();
     resolver
         .resolve_full_tree_async(client, name, version_range, seen)
         .await
