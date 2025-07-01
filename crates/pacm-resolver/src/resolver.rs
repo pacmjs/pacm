@@ -15,7 +15,7 @@ pub struct DependencyResolver {
 impl DependencyResolver {
     pub fn new() -> Self {
         Self {
-            resolution_cache: Arc::new(Mutex::new(HashMap::new())),
+            resolution_cache: Arc::new(Mutex::new(HashMap::with_capacity(1000))), // Pre-allocate capacity
         }
     }
 
@@ -81,6 +81,7 @@ impl DependencyResolver {
         seen: &mut HashSet<String>,
     ) -> anyhow::Result<Vec<ResolvedPackage>> {
         let cache_key = format!("{}@{}", name, version_range);
+
         {
             let cache = self.resolution_cache.lock().await;
             if let Some(cached_result) = cache.get(&cache_key) {
@@ -99,12 +100,15 @@ impl DependencyResolver {
             }
         }
 
-        let mut resolved = vec![];
+        let mut resolved = Vec::with_capacity(50); // Pre-allocate capacity
+        let pkg_data = fetch_package_info_async(client.clone(), name)
+            .await
+            .map_err(|e| anyhow::anyhow!("Failed to fetch package info for {}: {}", name, e))?;
 
-        let pkg_data = fetch_package_info_async(client.clone(), name).await?;
         let selected_version =
             resolve_version(&pkg_data.versions, version_range, &pkg_data.dist_tags)
                 .map_err(|e| anyhow::anyhow!("Cannot resolve version for {}: {}", name, e))?;
+
         let version_data = &pkg_data.versions[&selected_version];
 
         let key = format!("{}@{}", name, selected_version);
@@ -147,7 +151,7 @@ impl DependencyResolver {
                     let resolver = DependencyResolver::new();
 
                     async move {
-                        let mut local_seen = HashSet::new();
+                        let mut local_seen = HashSet::with_capacity(100); // Pre-allocate
                         resolver
                             .resolve_full_tree_async(
                                 client_clone,

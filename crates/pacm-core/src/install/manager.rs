@@ -24,7 +24,7 @@ impl InstallManager {
     pub fn new() -> Self {
         Self {
             downloader: PackageDownloader::new(),
-            linker: PackageLinker,
+            linker: PackageLinker {},
             cache: CacheManager::new(),
             resolver: DependencyResolver::new(),
         }
@@ -39,6 +39,7 @@ impl InstallManager {
     }
 
     async fn install_all_async(&self, project_dir: &str, debug: bool) -> Result<()> {
+        let start_time = std::time::Instant::now();
         let path = PathBuf::from(project_dir);
         let _pkg = read_package_json(&path)
             .map_err(|e| PackageManagerError::PackageJsonError(e.to_string()))?;
@@ -50,15 +51,36 @@ impl InstallManager {
             return Ok(());
         }
 
+        let cache_start = std::time::Instant::now();
         self.cache.build_index(debug).await?;
 
-        if let Some(cached_result) = self.check_all_cached(&deps, use_lockfile, debug).await? {
+        if debug {
+            pacm_logger::debug(
+                &format!("Cache index built in {:?}", cache_start.elapsed()),
+                debug,
+            );
+        }
+
+        if let Some(cached_result) = self
+            .check_all_cached_optimized(&deps, use_lockfile, debug)
+            .await?
+        {
+            let total_time = start_time.elapsed();
+            pacm_logger::debug(
+                &format!(
+                    "All packages cached - completed installation in {:?}",
+                    total_time
+                ),
+                debug,
+            );
+
             return self
                 .install_from_cache_only(cached_result, &path, debug)
                 .await;
         }
 
-        self.install_mixed(&deps, use_lockfile, &path, debug).await
+        self.install_mixed_optimized(&deps, use_lockfile, &path, debug)
+            .await
     }
 
     fn load_deps(&self, path: &PathBuf) -> Result<(Vec<(String, String)>, bool)> {
@@ -85,7 +107,7 @@ impl InstallManager {
         }
     }
 
-    async fn check_all_cached(
+    async fn check_all_cached_optimized(
         &self,
         deps: &[(String, String)],
         use_lockfile: bool,
@@ -97,26 +119,118 @@ impl InstallManager {
             HashMap<String, ResolvedPackage>,
         )>,
     > {
+        if !self.cache.are_all_cached(deps).await {
+            return Ok(None); // Early exit - not all cached
+        }
+
+        pacm_logger::status("All direct dependencies found in cache - checking full tree...");
+
         let (_, _, direct_names, resolved_map) = self
             .resolver
-            .resolve_deps(deps, use_lockfile, debug)
+            .resolve_deps_optimized(deps, use_lockfile, &self.cache, debug)
             .await?;
 
-        let mut all_cached_packages = Vec::new();
+        let cache_keys: Vec<String> = resolved_map.keys().cloned().collect();
+        let batch_results = self.cache.get_batch(&cache_keys).await;
 
-        for (key, _) in &resolved_map {
-            if let Some(cached) = self.cache.get(key).await {
+        let mut all_cached_packages = Vec::new();
+        for (_key, cached_opt) in batch_results {
+            if let Some(cached) = cached_opt {
                 all_cached_packages.push(cached);
             } else {
-                return Ok(None); // Not all cached
+                // Not all packages are cached
+                return Ok(None);
             }
         }
 
         if all_cached_packages.len() == resolved_map.len() {
+            pacm_logger::status(&format!(
+                "All {} packages found in cache - installing instantly!",
+                all_cached_packages.len()
+            ));
             Ok(Some((all_cached_packages, direct_names, resolved_map)))
         } else {
             Ok(None)
         }
+    }
+
+    async fn install_mixed_optimized(
+        &self,
+        deps: &[(String, String)],
+        use_lockfile: bool,
+        path: &PathBuf,
+        debug: bool,
+    ) -> Result<()> {
+        let resolution_start = std::time::Instant::now();
+
+        let (cached_packages, packages_to_download, direct_names, resolved_map) = self
+            .resolver
+            .resolve_deps_optimized(deps, use_lockfile, &self.cache, debug)
+            .await?;
+
+        if debug {
+            pacm_logger::debug(
+                &format!(
+                    "Resolution and cache separation completed in {:?}",
+                    resolution_start.elapsed()
+                ),
+                debug,
+            );
+        }
+
+        let mut stored_packages = self.build_stored_map(&cached_packages, &resolved_map);
+
+        if !cached_packages.is_empty() {
+            let cache_link_start = std::time::Instant::now();
+            self.link_cached_deps(&cached_packages, &stored_packages, debug)?;
+
+            if debug {
+                pacm_logger::debug(
+                    &format!("Cached packages linked in {:?}", cache_link_start.elapsed()),
+                    debug,
+                );
+            }
+        }
+
+        if !packages_to_download.is_empty() {
+            let download_start = std::time::Instant::now();
+            let downloaded = self.download_packages(&packages_to_download, debug).await?;
+            stored_packages.extend(downloaded);
+
+            if debug {
+                pacm_logger::debug(
+                    &format!("Downloads completed in {:?}", download_start.elapsed()),
+                    debug,
+                );
+            }
+
+            let link_start = std::time::Instant::now();
+            self.link_store_deps(&stored_packages, debug)?;
+
+            if debug {
+                pacm_logger::debug(
+                    &format!("Store linking completed in {:?}", link_start.elapsed()),
+                    debug,
+                );
+            }
+
+            self.run_post_install(&stored_packages, &packages_to_download, debug)?;
+        }
+
+        let final_start = std::time::Instant::now();
+        self.link_to_project(path, &stored_packages, &direct_names, debug)?;
+        self.update_lock(path, &stored_packages, &direct_names)?;
+
+        if debug {
+            pacm_logger::debug(
+                &format!("Final linking completed in {:?}", final_start.elapsed()),
+                debug,
+            );
+        }
+
+        let msg = self.build_finish_message(&cached_packages, &packages_to_download);
+        pacm_logger::finish(&msg);
+        Ok(())
     }
 
     async fn install_from_cache_only(
@@ -144,39 +258,6 @@ impl InstallManager {
             "{} packages linked from cache",
             cached_packages.len()
         ));
-        Ok(())
-    }
-
-    async fn install_mixed(
-        &self,
-        deps: &[(String, String)],
-        use_lockfile: bool,
-        path: &PathBuf,
-        debug: bool,
-    ) -> Result<()> {
-        let (cached_packages, packages_to_download, direct_names, resolved_map) = self
-            .resolver
-            .resolve_deps(deps, use_lockfile, debug)
-            .await?;
-
-        let mut stored_packages = self.build_stored_map(&cached_packages, &resolved_map);
-
-        if !cached_packages.is_empty() {
-            self.link_cached_deps(&cached_packages, &stored_packages, debug)?;
-        }
-
-        if !packages_to_download.is_empty() {
-            let downloaded = self.download_packages(&packages_to_download, debug).await?;
-            stored_packages.extend(downloaded);
-            self.link_store_deps(&stored_packages, debug)?;
-            self.run_post_install(&stored_packages, &packages_to_download, debug)?;
-        }
-
-        self.link_to_project(path, &stored_packages, &direct_names, debug)?;
-        self.update_lock(path, &stored_packages, &direct_names)?;
-
-        let msg = self.build_finish_message(&cached_packages, &packages_to_download);
-        pacm_logger::finish(&msg);
         Ok(())
     }
 
@@ -359,13 +440,51 @@ impl InstallManager {
 
         let path = PathBuf::from(project_dir);
 
+        if debug {
+            pacm_logger::debug("Building cache index...", debug);
+        }
         self.cache.build_index(debug).await?;
 
         let deps = vec![(name.to_string(), version_range.to_string())];
-        let (cached_packages, packages_to_download, mut direct_names, resolved_map) = self
-            .resolver
-            .resolve_deps(&deps, false, debug) // Never use lockfile for single installs
-            .await?;
+
+        if debug {
+            pacm_logger::debug(
+                &format!(
+                    "Starting dependency resolution for {}@{}",
+                    name, version_range
+                ),
+                debug,
+            );
+        }
+
+        let resolution_timeout = tokio::time::timeout(
+            std::time::Duration::from_secs(120), // 2 minute timeout
+            self.resolver
+                .resolve_deps_optimized(&deps, false, &self.cache, debug),
+        )
+        .await;
+
+        let (cached_packages, packages_to_download, mut direct_names, resolved_map) =
+            match resolution_timeout {
+                Ok(result) => result?,
+                Err(_) => {
+                    return Err(PackageManagerError::NetworkError(format!(
+                        "Dependency resolution timed out for {}@{}",
+                        name, version_range
+                    )));
+                }
+            };
+
+        if debug {
+            pacm_logger::debug(
+                &format!(
+                    "Resolution completed: {} cached, {} to download",
+                    cached_packages.len(),
+                    packages_to_download.len()
+                ),
+                debug,
+            );
+        }
 
         direct_names.clear();
         direct_names.insert(name.to_string());
@@ -398,12 +517,14 @@ impl InstallManager {
 
             let msg = if cached_packages.len() == 1 {
                 format!("{} linked from cache", name)
-            } else {
+            } else if cached_packages.len() > 1 {
                 format!(
                     "{} and {} dependencies linked from cache",
                     name,
                     cached_packages.len() - 1
                 )
+            } else {
+                format!("{} package resolved", name)
             };
             pacm_logger::finish(&msg);
             return Ok(());

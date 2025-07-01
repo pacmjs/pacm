@@ -1,3 +1,4 @@
+use rayon::prelude::*;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
@@ -15,35 +16,45 @@ impl StoreLinker {
     ) -> Result<()> {
         pacm_logger::status("Setting up package dependencies...");
 
-        for (_package_key, (pkg, store_path)) in stored_packages {
-            pacm_logger::debug(
-                &format!(
-                    "Setting up dependencies for {}@{} in store",
-                    pkg.name, pkg.version
-                ),
-                debug,
-            );
-
-            let package_node_modules = store_path.join("package").join("node_modules");
-
-            for (dep_name, _dep_range) in &pkg.dependencies {
-                if let Some((_, dep_store_path)) = stored_packages
-                    .iter()
-                    .find(|(key, _)| key.starts_with(&format!("{}@", dep_name)))
-                    .map(|(_, (_, store_path))| ((), store_path))
-                {
-                    if let Err(e) = link_package(&package_node_modules, dep_name, dep_store_path) {
-                        pacm_logger::debug(
-                            &format!(
-                                "Failed to link dependency {} for package {}: {}",
-                                dep_name, pkg.name, e
-                            ),
-                            debug,
-                        );
-                    }
+        stored_packages
+            .par_iter()
+            .for_each(|(_package_key, (pkg, store_path))| {
+                if debug {
+                    pacm_logger::debug(
+                        &format!(
+                            "Setting up dependencies for {}@{} in store",
+                            pkg.name, pkg.version
+                        ),
+                        debug,
+                    );
                 }
-            }
-        }
+
+                let package_node_modules = store_path.join("package").join("node_modules");
+
+                pkg.dependencies
+                    .par_iter()
+                    .for_each(|(dep_name, _dep_range)| {
+                        if let Some((_, dep_store_path)) = stored_packages
+                            .iter()
+                            .find(|(key, _)| key.starts_with(&format!("{}@", dep_name)))
+                            .map(|(_, (_, store_path))| ((), store_path))
+                        {
+                            if let Err(e) =
+                                link_package(&package_node_modules, dep_name, dep_store_path)
+                            {
+                                if debug {
+                                    pacm_logger::debug(
+                                        &format!(
+                                            "Failed to link dependency {} for package {}: {}",
+                                            dep_name, pkg.name, e
+                                        ),
+                                        debug,
+                                    );
+                                }
+                            }
+                        }
+                    });
+            });
 
         Ok(())
     }

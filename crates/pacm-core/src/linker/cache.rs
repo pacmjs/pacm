@@ -1,3 +1,4 @@
+use rayon::prelude::*;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
@@ -21,41 +22,62 @@ impl CacheLinker {
 
         pacm_logger::status("Verifying cached package dependencies...");
 
-        for cached_pkg in cached_packages {
-            let package_node_modules = cached_pkg.store_path.join("package").join("node_modules");
+        let packages_needing_linking: Vec<_> = cached_packages
+            .par_iter()
+            .filter_map(|cached_pkg| {
+                let package_node_modules =
+                    cached_pkg.store_path.join("package").join("node_modules");
+                let cached_key = format!("{}@{}", cached_pkg.name, cached_pkg.version);
 
-            let cached_key = format!("{}@{}", cached_pkg.name, cached_pkg.version);
-            if let Some((resolved_pkg, _)) = all_stored_packages.get(&cached_key) {
-                pacm_logger::debug(
-                    &format!(
-                        "Checking dependencies for cached package {}@{}",
-                        cached_pkg.name, cached_pkg.version
-                    ),
-                    debug,
-                );
-
-                let mut needs_linking = false;
-
-                for (dep_name, _dep_range) in &resolved_pkg.dependencies {
-                    let dep_link_path = get_dep_link_path(&package_node_modules, dep_name);
-
-                    if !dep_link_path.exists() || !is_valid_package_link(&dep_link_path, debug) {
+                if let Some((resolved_pkg, _)) = all_stored_packages.get(&cached_key) {
+                    if debug {
                         pacm_logger::debug(
                             &format!(
-                                "Missing or invalid dependency link: {} for {}",
-                                dep_name, cached_pkg.name
+                                "Checking dependencies for cached package {}@{}",
+                                cached_pkg.name, cached_pkg.version
                             ),
                             debug,
                         );
-                        needs_linking = true;
-                        break;
+                    }
+
+                    for (dep_name, _dep_range) in &resolved_pkg.dependencies {
+                        let dep_link_path = get_dep_link_path(&package_node_modules, dep_name);
+
+                        if !dep_link_path.exists() || !is_valid_package_link(&dep_link_path, debug)
+                        {
+                            if debug {
+                                pacm_logger::debug(
+                                    &format!(
+                                        "Missing or invalid dependency link: {} for {}",
+                                        dep_name, cached_pkg.name
+                                    ),
+                                    debug,
+                                );
+                            }
+                            return Some((cached_pkg, resolved_pkg));
+                        }
                     }
                 }
+                None
+            })
+            .collect();
 
-                if needs_linking {
-                    Self::relink_deps(cached_pkg, resolved_pkg, all_stored_packages, debug)?;
-                }
-            }
+        if !packages_needing_linking.is_empty() {
+            packages_needing_linking
+                .par_iter()
+                .for_each(|(cached_pkg, resolved_pkg)| {
+                    if let Err(e) =
+                        Self::relink_deps(cached_pkg, resolved_pkg, all_stored_packages, debug)
+                    {
+                        pacm_logger::debug(
+                            &format!(
+                                "Failed to relink dependencies for {}: {}",
+                                cached_pkg.name, e
+                            ),
+                            debug,
+                        );
+                    }
+                });
         }
 
         Ok(())

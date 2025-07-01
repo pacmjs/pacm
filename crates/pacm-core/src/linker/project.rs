@@ -1,3 +1,4 @@
+use rayon::prelude::*;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
@@ -18,25 +19,38 @@ impl ProjectLinker {
     ) -> Result<()> {
         pacm_logger::status("Linking packages to project...");
 
-        for (_package_key, (pkg, store_path)) in stored_packages {
-            if direct_package_names.contains(&pkg.name) {
-                if let Err(e) =
-                    link_package(&project_dir.join("node_modules"), &pkg.name, store_path)
-                {
+        let project_node_modules = project_dir.join("node_modules");
+
+        let direct_packages: Vec<_> = stored_packages
+            .iter()
+            .filter(|(_, (pkg, _))| direct_package_names.contains(&pkg.name))
+            .collect();
+
+        let results: Vec<_> = direct_packages
+            .par_iter()
+            .map(|(_, (pkg, store_path))| {
+                if let Err(e) = link_package(&project_node_modules, &pkg.name, store_path) {
                     pacm_logger::error(&format!(
                         "Failed to link {}@{}: {}",
                         pkg.name, pkg.version, e
                     ));
-                    pacm_logger::debug(
-                        &format!("link_package failed for {}@{}", pkg.name, pkg.version),
-                        debug,
-                    );
+                    if debug {
+                        pacm_logger::debug(
+                            &format!("link_package failed for {}@{}", pkg.name, pkg.version),
+                            debug,
+                        );
+                    }
                     return Err(PackageManagerError::LinkingFailed(
                         pkg.name.clone(),
                         e.to_string(),
                     ));
                 }
-            }
+                Ok(())
+            })
+            .collect();
+
+        for result in results {
+            result?;
         }
 
         Ok(())

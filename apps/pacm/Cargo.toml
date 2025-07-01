@@ -1,0 +1,15 @@
+[package]
+name = "pacm"
+version = "0.1.0"
+edition = "2024"
+description = "PACM package manager - main binary"
+
+[[bin]]
+name = "pacm"
+path = "src/main.rs"
+
+[lints]
+workspace = true
+
+[dependencies]
+pacm-cli = { path = "../../crates/pacm-cli" }

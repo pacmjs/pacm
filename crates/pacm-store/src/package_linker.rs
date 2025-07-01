@@ -1,5 +1,10 @@
 use rayon::prelude::*;
-use std::{collections::HashMap, fs, io, path::Path};
+use std::{
+    collections::HashMap,
+    fs, io,
+    path::Path,
+    sync::atomic::{AtomicUsize, Ordering},
+};
 
 pub struct PackageLinker;
 
@@ -10,10 +15,19 @@ impl PackageLinker {
     ) -> io::Result<()> {
         fs::create_dir_all(project_node_modules)?;
 
+        let counter = AtomicUsize::new(0);
+
         let results: Result<Vec<_>, _> = packages
             .par_iter()
             .map(|(package_name, store_path)| {
-                Self::link_package(project_node_modules, package_name, store_path)
+                let result = Self::link_package(project_node_modules, package_name, store_path);
+
+                let current = counter.fetch_add(1, Ordering::Relaxed) + 1;
+                if current % 50 == 0 {
+                    eprintln!("Linked {}/{} packages", current, packages.len());
+                }
+
+                result
             })
             .collect();
 
@@ -31,10 +45,10 @@ impl PackageLinker {
         Self::ensure_parent_directory_exists(&dest)?;
         Self::remove_existing_package(&dest)?;
 
-        let updated_store_path = store_path
-            .canonicalize()
-            .map(|p| p.join("package"))
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+        let updated_store_path = match store_path.canonicalize() {
+            Ok(canonical_path) => canonical_path.join("package"),
+            Err(_) => store_path.join("package"),
+        };
 
         Self::create_symlink(&updated_store_path, &dest)?;
         Ok(())

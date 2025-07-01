@@ -2,7 +2,7 @@ use futures::future::join_all;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex, Semaphore};
 
 use pacm_error::{PackageManagerError, Result};
 use pacm_logger;
@@ -10,11 +10,11 @@ use pacm_resolver::ResolvedPackage;
 
 use super::cache::CacheIndex;
 use super::client::DownloadClient;
-use super::storage::PackageStorage;
 
 pub struct PackageDownloader {
     cache: CacheIndex,
     client: DownloadClient,
+    download_semaphore: Arc<Semaphore>,
 }
 
 impl PackageDownloader {
@@ -22,6 +22,7 @@ impl PackageDownloader {
         Self {
             cache: CacheIndex::new(),
             client: DownloadClient::new(),
+            download_semaphore: Arc::new(Semaphore::new(40)),
         }
     }
 
@@ -34,27 +35,31 @@ impl PackageDownloader {
             return Ok(HashMap::new());
         }
 
+        let start_time = std::time::Instant::now();
         self.cache.build(debug).await?;
 
         pacm_logger::status(&format!(
-            "Processing {} packages with cache-first strategy...",
+            "Processing {} packages with ultra-fast cache-first strategy...",
             packages.len()
         ));
 
         let stored_packages = Arc::new(Mutex::new(HashMap::new()));
         let processed = Arc::new(Mutex::new(std::collections::HashSet::new()));
 
-        let mut cached_packages = Vec::new();
-        let mut packages_to_download = Vec::new();
+        let cache_start = std::time::Instant::now();
+        let (cached_packages, packages_to_download) =
+            self.separate_cached_ultra_fast(packages, debug).await?;
 
-        for pkg in packages {
-            let key = format!("{}@{}", pkg.name, pkg.version);
-            if let Some(store_path) = self.cache.get(&key).await {
-                cached_packages.push((pkg.clone(), store_path));
-                pacm_logger::debug(&format!("Cache hit: {}", key), debug);
-            } else {
-                packages_to_download.push(pkg.clone());
-            }
+        if debug {
+            pacm_logger::debug(
+                &format!(
+                    "Cache separation completed in {:?} ({} cached, {} to download)",
+                    cache_start.elapsed(),
+                    cached_packages.len(),
+                    packages_to_download.len()
+                ),
+                debug,
+            );
         }
 
         if !cached_packages.is_empty() {
@@ -70,6 +75,7 @@ impl PackageDownloader {
         }
 
         if !packages_to_download.is_empty() {
+            let download_start = std::time::Instant::now();
             pacm_logger::status(&format!(
                 "Downloading {} packages...",
                 packages_to_download.len()
@@ -82,8 +88,11 @@ impl PackageDownloader {
                     let stored_packages = stored_packages.clone();
                     let processed = processed.clone();
                     let pkg = pkg.clone();
+                    let semaphore = self.download_semaphore.clone();
 
                     async move {
+                        let _permit = semaphore.acquire().await.unwrap();
+
                         let key = format!("{}@{}", pkg.name, pkg.version);
 
                         {
@@ -98,12 +107,34 @@ impl PackageDownloader {
                             pacm_logger::debug(&format!("Downloading: {}", key), debug);
                         }
 
-                        let tarball_bytes = client.download_tarball(&pkg, debug).await?;
-                        let store_path = PackageStorage::store(&pkg, &tarball_bytes, debug)?;
+                        match client.download_tarball(&pkg, debug).await {
+                            Ok(tarball_data) => {
+                                if let Ok(store_path) = pacm_store::store_package(
+                                    &pkg.name,
+                                    &pkg.version,
+                                    &tarball_data,
+                                ) {
+                                    let mut stored = stored_packages.lock().await;
+                                    stored.insert(key.clone(), (pkg, store_path));
 
-                        {
-                            let mut stored = stored_packages.lock().await;
-                            stored.insert(key, (pkg, store_path));
+                                    if debug {
+                                        pacm_logger::debug(&format!("Completed: {}", key), debug);
+                                    }
+                                } else {
+                                    pacm_logger::error(&format!(
+                                        "Failed to store package: {}",
+                                        key
+                                    ));
+                                    return Err(PackageManagerError::StorageFailed(
+                                        key.clone(),
+                                        "Failed to store package".to_string(),
+                                    ));
+                                }
+                            }
+                            Err(e) => {
+                                pacm_logger::error(&format!("Failed to download {}: {}", key, e));
+                                return Err(e);
+                            }
                         }
 
                         Ok(())
@@ -111,25 +142,74 @@ impl PackageDownloader {
                 })
                 .collect();
 
-            let results = join_all(download_tasks).await;
+            let download_results = join_all(download_tasks).await;
 
-            for result in results {
+            for result in download_results {
                 if let Err(e) = result {
                     return Err(e);
                 }
             }
+
+            if debug {
+                pacm_logger::debug(
+                    &format!("All downloads completed in {:?}", download_start.elapsed()),
+                    debug,
+                );
+            }
         }
 
-        let stored = stored_packages.lock().await;
-        let total_cached = stored.len() - packages_to_download.len();
-        if total_cached > 0 {
-            pacm_logger::status(&format!(
-                "Total: {} from cache, {} downloaded",
-                total_cached,
-                packages_to_download.len()
-            ));
+        let final_stored = stored_packages.lock().await.clone();
+
+        if debug {
+            pacm_logger::debug(
+                &format!(
+                    "Total download process completed in {:?}",
+                    start_time.elapsed()
+                ),
+                debug,
+            );
         }
-        Ok(stored.clone())
+
+        Ok(final_stored)
+    }
+
+    async fn separate_cached_ultra_fast(
+        &self,
+        packages: &[ResolvedPackage],
+        debug: bool,
+    ) -> Result<(Vec<(ResolvedPackage, PathBuf)>, Vec<ResolvedPackage>)> {
+        let mut cached_packages = Vec::new();
+        let mut packages_to_download = Vec::new();
+
+        let cache_tasks: Vec<_> = packages
+            .iter()
+            .map(|pkg| {
+                let key = format!("{}@{}", pkg.name, pkg.version);
+                let pkg_clone = pkg.clone();
+                async move {
+                    if let Some(store_path) = self.cache.get(&key).await {
+                        (pkg_clone, Some(store_path))
+                    } else {
+                        (pkg_clone, None)
+                    }
+                }
+            })
+            .collect();
+
+        let cache_results = join_all(cache_tasks).await;
+
+        for (pkg, store_path_opt) in cache_results {
+            if let Some(store_path) = store_path_opt {
+                if debug {
+                    pacm_logger::debug(&format!("Cache hit: {}@{}", pkg.name, pkg.version), debug);
+                }
+                cached_packages.push((pkg, store_path));
+            } else {
+                packages_to_download.push(pkg);
+            }
+        }
+
+        Ok((cached_packages, packages_to_download))
     }
 
     pub fn download_packages(
@@ -142,10 +222,6 @@ impl PackageDownloader {
         })?;
 
         rt.block_on(self.download_parallel(packages, debug))
-    }
-
-    pub fn check_exists(&self, pkg: &ResolvedPackage, debug: bool) -> Result<Option<PathBuf>> {
-        PackageStorage::check_exists(pkg, debug)
     }
 }
 
