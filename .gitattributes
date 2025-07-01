@@ -1,0 +1,3 @@
+*.js linguist-detectable=false
+*.ps1 linguist-detectable=false
+*.sh linguist-detectable=false
