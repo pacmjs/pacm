@@ -1,5 +1,5 @@
 <div align="center">
-<img src="./assets/logo.png" width="100" height="100" />
+<img src="./assets/logo.png" width="200" height="200" />
 <h1>PACM (Package Manager)</h1>
 
 <div style="display: flex; justify-content: center; gap: 8px; flex-wrap: wrap;">
