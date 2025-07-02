@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
+use pacm_constants::POPULAR_PACKAGES;
 use pacm_error::Result;
 use pacm_resolver::ResolvedPackage;
 
@@ -18,28 +19,10 @@ impl DependencyOptimizer {
     }
 
     pub async fn preload_popular_packages(&self, client: Arc<reqwest::Client>) -> Result<()> {
-        let popular_packages = vec![
-            "react",
-            "vue",
-            "angular",
-            "express",
-            "lodash",
-            "axios",
-            "typescript",
-            "webpack",
-            "babel-core",
-            "eslint",
-            "prettier",
-            "jest",
-            "mocha",
-            "chai",
-            "moment",
-            "dotenv",
-            "cors",
-            "helmet",
-            "bcrypt",
-            "jsonwebtoken",
-        ];
+        let popular_packages = POPULAR_PACKAGES.to_vec();
+        if popular_packages.is_empty() {
+            return Ok(());
+        }
 
         let preload_tasks: Vec<_> = popular_packages
             .iter()

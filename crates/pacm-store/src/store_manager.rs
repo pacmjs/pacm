@@ -7,8 +7,12 @@ use std::{
 pub struct StoreManager;
 
 impl StoreManager {
+    #[must_use]
     pub fn get_store_path() -> PathBuf {
-        dirs::home_dir().unwrap().join(".pacm").join("store")
+        dirs::home_dir()
+            .unwrap_or_else(|| PathBuf::from("."))
+            .join(".pacm")
+            .join("store")
     }
 
     pub fn store_package(
@@ -53,8 +57,16 @@ impl StoreManager {
 
         let entries: Vec<_> = fs::read_dir(temp_dir.path())?.collect::<Result<Vec<_>, _>>()?;
 
-        let extracted_package_dir = if entries.len() == 1 && entries[0].file_type()?.is_dir() {
-            entries[0].path()
+        let extracted_package_dir = if entries.len() == 1 {
+            if let Some(entry) = entries.first() {
+                if entry.file_type()?.is_dir() {
+                    entry.path()
+                } else {
+                    temp_dir.path().to_path_buf()
+                }
+            } else {
+                temp_dir.path().to_path_buf()
+            }
         } else {
             temp_dir.path().to_path_buf()
         };
@@ -75,6 +87,7 @@ impl StoreManager {
     }
 }
 
+#[must_use]
 pub fn get_store_path() -> PathBuf {
     StoreManager::get_store_path()
 }

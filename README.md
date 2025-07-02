@@ -89,7 +89,7 @@ cargo test
 
 ```bash
 cargo fmt
-cargo clippy
+cargo check
 ```
 
 ## 📋 TODO

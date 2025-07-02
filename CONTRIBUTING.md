@@ -72,8 +72,8 @@ We use automated formatting and linting tools:
 # Format code
 cargo fmt
 
-# Run clippy
-cargo clippy
+# Check code for errors and warnings
+cargo check
 ```
 
 ### TODO: Code Standards

@@ -37,14 +37,29 @@ impl InstallHandler {
             return Ok(());
         }
 
-        for pkg in packages {
-            let (name, version_range) = parse_pkg_spec(pkg);
-            Self::print_header(pkg);
+        if packages.len() == 1 {
+            let (name, version_range) = parse_pkg_spec(&packages[0]);
+            Self::print_header(&packages[0]);
 
-            pacm_core::install_single_enhanced(
+            pacm_core::install_enhanced(
                 ".",
                 &name,
                 &version_range,
+                dep_type,
+                save_exact,
+                no_save,
+                force,
+                debug,
+            )?;
+        } else {
+            let parsed_packages: Vec<(String, String)> =
+                packages.iter().map(|pkg| parse_pkg_spec(pkg)).collect();
+
+            Self::print_batch_header(packages);
+
+            pacm_core::install_multiple(
+                ".",
+                &parsed_packages,
                 dep_type,
                 save_exact,
                 no_save,
@@ -74,6 +89,17 @@ impl InstallHandler {
             "pacm".bright_cyan().bold(),
             "install".bright_white(),
             package.bright_white()
+        );
+        println!();
+    }
+
+    fn print_batch_header(packages: &[String]) {
+        let package_list = packages.join(" ");
+        println!(
+            "{} {} {}",
+            "pacm".bright_cyan().bold(),
+            "install".bright_white(),
+            package_list.bright_white()
         );
         println!();
     }

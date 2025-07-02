@@ -18,38 +18,38 @@ pub enum PackageManagerError {
 impl fmt::Display for PackageManagerError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            PackageManagerError::PackageJsonExists(path) => {
-                write!(f, "Package.json already exists at {}", path)
+            Self::PackageJsonExists(path) => {
+                write!(f, "Package.json already exists at {path}")
             }
-            PackageManagerError::PackageNotFound(name) => {
-                write!(f, "Package '{}' not found", name)
+            Self::PackageNotFound(name) => {
+                write!(f, "Package '{name}' not found")
             }
-            PackageManagerError::VersionResolutionFailed(name, range) => {
-                write!(f, "Failed to resolve version for {}@{}", name, range)
+            Self::VersionResolutionFailed(name, range) => {
+                write!(f, "Failed to resolve version for {name}@{range}")
             }
-            PackageManagerError::DownloadFailed(name, version) => {
-                write!(f, "Failed to download {}@{}", name, version)
+            Self::DownloadFailed(name, version) => {
+                write!(f, "Failed to download {name}@{version}")
             }
-            PackageManagerError::StorageFailed(name, version) => {
-                write!(f, "Failed to store {}@{}", name, version)
+            Self::StorageFailed(name, version) => {
+                write!(f, "Failed to store {name}@{version}")
             }
-            PackageManagerError::LinkingFailed(name, reason) => {
-                write!(f, "Failed to link package '{}': {}", name, reason)
+            Self::LinkingFailed(name, reason) => {
+                write!(f, "Failed to link package '{name}': {reason}")
             }
-            PackageManagerError::LockfileError(msg) => {
-                write!(f, "Lockfile error: {}", msg)
+            Self::LockfileError(msg) => {
+                write!(f, "Lockfile error: {msg}")
             }
-            PackageManagerError::PackageJsonError(msg) => {
-                write!(f, "Package.json error: {}", msg)
+            Self::PackageJsonError(msg) => {
+                write!(f, "Package.json error: {msg}")
             }
-            PackageManagerError::NetworkError(msg) => {
-                write!(f, "Network error: {}", msg)
+            Self::NetworkError(msg) => {
+                write!(f, "Network error: {msg}")
             }
-            PackageManagerError::InvalidPackageSpec(spec) => {
-                write!(f, "Invalid package specification: {}", spec)
+            Self::InvalidPackageSpec(spec) => {
+                write!(f, "Invalid package specification: {spec}")
             }
-            PackageManagerError::DependencyConflict(name, details) => {
-                write!(f, "Dependency conflict for '{}': {}", name, details)
+            Self::DependencyConflict(name, details) => {
+                write!(f, "Dependency conflict for '{name}': {details}")
             }
         }
     }
@@ -59,7 +59,7 @@ impl std::error::Error for PackageManagerError {}
 
 impl From<anyhow::Error> for PackageManagerError {
     fn from(err: anyhow::Error) -> Self {
-        PackageManagerError::PackageJsonError(err.to_string())
+        Self::PackageJsonError(err.to_string())
     }
 }
 

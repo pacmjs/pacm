@@ -8,7 +8,7 @@ use pacm_project::{read_package_json, write_package_json};
 pub struct RemoveManager;
 
 impl RemoveManager {
-    pub fn remove_dependency(
+    pub fn remove_dep(
         &self,
         project_dir: &str,
         name: &str,
@@ -79,12 +79,16 @@ impl RemoveManager {
 
     fn update_lockfile_after_removal(&self, project_dir: &PathBuf, name: &str) -> Result<()> {
         let lock_path = project_dir.join("pacm.lock");
+
+        if !lock_path.exists() {
+            // No lockfile to update
+            return Ok(());
+        }
+
         let mut lockfile = PacmLock::load(&lock_path)
             .map_err(|e| PackageManagerError::LockfileError(e.to_string()))?;
 
-        lockfile
-            .dependencies
-            .retain(|key, _| !key.starts_with(&format!("{}@", name)));
+        lockfile.remove_dep_exact(name);
 
         lockfile
             .save(&lock_path)

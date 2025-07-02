@@ -41,6 +41,7 @@ pub enum DependencyType {
 }
 
 impl PackageJson {
+    #[must_use]
     pub fn get_all_dependencies(&self) -> HashMap<String, String> {
         let mut all_deps = HashMap::new();
 

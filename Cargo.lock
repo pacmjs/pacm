@@ -1476,12 +1476,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "pacm-constants"
+version = "0.1.0"
+
+[[package]]
 name = "pacm-core"
 version = "0.1.0"
 dependencies = [
  "anyhow",
  "futures",
  "indexmap",
+ "pacm-constants",
  "pacm-error",
  "pacm-lock",
  "pacm-logger",
@@ -1537,6 +1542,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "lazy_static",
+ "pacm-constants",
  "reqwest",
  "serde_json",
  "tokio",

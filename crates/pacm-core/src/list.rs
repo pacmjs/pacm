@@ -7,12 +7,7 @@ use pacm_project::read_package_json;
 pub struct ListManager;
 
 impl ListManager {
-    pub fn list_dependencies(
-        &self,
-        project_dir: &str,
-        tree: bool,
-        _depth: Option<u32>,
-    ) -> Result<()> {
+    pub fn list_deps(&self, project_dir: &str, tree: bool, _depth: Option<u32>) -> Result<()> {
         let path = PathBuf::from(project_dir);
         let pkg = read_package_json(&path)
             .map_err(|e| PackageManagerError::PackageJsonError(e.to_string()))?;

@@ -64,6 +64,20 @@ impl CacheIndex {
         let cache = self.index.lock().await;
         cache.get(key).cloned()
     }
+
+    pub async fn find_versions_for_package(&self, package_name: &str) -> Vec<(String, PathBuf)> {
+        let cache = self.index.lock().await;
+        let name_prefix = format!("{}@", package_name);
+
+        cache
+            .iter()
+            .filter(|(key, _)| key.starts_with(&name_prefix))
+            .map(|(key, path)| {
+                let version = &key[name_prefix.len()..];
+                (version.to_string(), path.clone())
+            })
+            .collect()
+    }
 }
 
 pub fn parse_entry_name(name: &str) -> Option<(String, String, String)> {

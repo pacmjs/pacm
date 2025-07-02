@@ -19,7 +19,7 @@ impl PacmLock {
             let content = fs::read_to_string(path)?;
             Ok(serde_json::from_str(&content)?)
         } else {
-            Ok(PacmLock::default())
+            Ok(Self::default())
         }
     }
 
@@ -33,10 +33,21 @@ impl PacmLock {
         self.dependencies.insert(name.to_string(), dep);
     }
 
+    #[must_use]
     pub fn get_dependency(&self, name: &str) -> Option<&LockDependency> {
         self.dependencies.get(name)
     }
 
+    pub fn remove_dep(&mut self, name: &str) {
+        self.dependencies
+            .retain(|key, _| !key.starts_with(&format!("{name}@")));
+    }
+
+    pub fn remove_dep_exact(&mut self, key: &str) {
+        self.dependencies.remove(key);
+    }
+
+    #[must_use]
     pub fn has_all_dependencies(&self, required_deps: &[String]) -> bool {
         required_deps
             .iter()

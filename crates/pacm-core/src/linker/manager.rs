@@ -15,7 +15,7 @@ use super::store::StoreLinker;
 pub struct PackageLinker;
 
 impl PackageLinker {
-    pub fn link_dependencies_to_store(
+    pub fn link_deps_to_store(
         &self,
         stored_packages: &HashMap<String, (ResolvedPackage, PathBuf)>,
         debug: bool,
@@ -23,7 +23,7 @@ impl PackageLinker {
         StoreLinker::link_deps_to_store(stored_packages, debug)
     }
 
-    pub fn verify_and_fix_cached_package_dependencies(
+    pub fn verify_cached_deps(
         &self,
         cached_packages: &[CachedPackage],
         all_stored_packages: &HashMap<String, (ResolvedPackage, PathBuf)>,
@@ -32,7 +32,7 @@ impl PackageLinker {
         CacheLinker::verify_and_fix_deps(cached_packages, all_stored_packages, debug)
     }
 
-    pub fn link_direct_dependencies_to_project(
+    pub fn link_direct_to_project(
         &self,
         project_dir: &Path,
         stored_packages: &HashMap<String, (ResolvedPackage, PathBuf)>,
@@ -42,7 +42,7 @@ impl PackageLinker {
         ProjectLinker::link_direct_deps(project_dir, stored_packages, direct_package_names, debug)
     }
 
-    pub fn link_single_package_to_project(
+    pub fn link_single_to_project(
         &self,
         project_dir: &Path,
         package_name: &str,
@@ -60,7 +60,7 @@ impl PackageLinker {
         LockfileManager::update_all(lock_path, stored_packages)
     }
 
-    pub fn update_lockfile_direct_only(
+    pub fn update_lock_direct(
         &self,
         lock_path: &Path,
         stored_packages: &HashMap<String, (ResolvedPackage, PathBuf)>,
@@ -69,7 +69,7 @@ impl PackageLinker {
         LockfileManager::update_direct_only(lock_path, stored_packages, direct_package_names)
     }
 
-    pub fn update_lockfile_all_packages(
+    pub fn update_lock_all(
         &self,
         lock_path: &Path,
         stored_packages: &HashMap<String, (ResolvedPackage, PathBuf)>,
@@ -77,7 +77,7 @@ impl PackageLinker {
         LockfileManager::update_all(lock_path, stored_packages)
     }
 
-    pub fn update_package_json(
+    pub fn update_pkg_json(
         &self,
         project_dir: &Path,
         package_name: &str,
@@ -94,10 +94,7 @@ impl PackageLinker {
         )
     }
 
-    pub fn load_lockfile_dependencies(
-        &self,
-        lock_path: &Path,
-    ) -> Result<HashMap<String, LockDependency>> {
+    pub fn load_lock_deps(&self, lock_path: &Path) -> Result<HashMap<String, LockDependency>> {
         LockfileManager::load_deps(lock_path)
     }
 }

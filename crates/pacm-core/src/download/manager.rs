@@ -39,7 +39,7 @@ impl PackageDownloader {
         self.cache.build(debug).await?;
 
         pacm_logger::status(&format!(
-            "Processing {} packages with ultra-fast cache-first strategy...",
+            "Downloading {} packages with parallel processing...",
             packages.len()
         ));
 
@@ -47,8 +47,7 @@ impl PackageDownloader {
         let processed = Arc::new(Mutex::new(std::collections::HashSet::new()));
 
         let cache_start = std::time::Instant::now();
-        let (cached_packages, packages_to_download) =
-            self.separate_cached_ultra_fast(packages, debug).await?;
+        let (cached_packages, packages_to_download) = self.separate_cached(packages, debug).await?;
 
         if debug {
             pacm_logger::debug(
@@ -173,7 +172,7 @@ impl PackageDownloader {
         Ok(final_stored)
     }
 
-    async fn separate_cached_ultra_fast(
+    async fn separate_cached(
         &self,
         packages: &[ResolvedPackage],
         debug: bool,
@@ -217,6 +216,13 @@ impl PackageDownloader {
         packages: &[ResolvedPackage],
         debug: bool,
     ) -> Result<HashMap<String, (ResolvedPackage, PathBuf)>> {
+        if tokio::runtime::Handle::try_current().is_ok() {
+            return Err(PackageManagerError::NetworkError(
+                "download_packages called from async context. Use download_parallel instead."
+                    .to_string(),
+            ));
+        }
+
         let rt = tokio::runtime::Runtime::new().map_err(|e| {
             PackageManagerError::NetworkError(format!("Failed to create async runtime: {}", e))
         })?;

@@ -16,12 +16,7 @@ impl UpdateManager {
         }
     }
 
-    pub fn update_dependencies(
-        &self,
-        project_dir: &str,
-        packages: &[String],
-        debug: bool,
-    ) -> Result<()> {
+    pub fn update_deps(&self, project_dir: &str, packages: &[String], debug: bool) -> Result<()> {
         let path = PathBuf::from(project_dir);
         let pkg = read_package_json(&path)
             .map_err(|e| PackageManagerError::PackageJsonError(e.to_string()))?;
@@ -36,17 +31,38 @@ impl UpdateManager {
     fn update_all_dependencies(
         &self,
         pkg: &pacm_project::PackageJson,
-        _project_dir: &str,
-        _debug: bool,
+        project_dir: &str,
+        debug: bool,
     ) -> Result<()> {
         pacm_logger::status("Updating all dependencies...");
 
         let all_deps = pkg.get_all_dependencies();
-        for (name, _) in all_deps {
-            pacm_logger::info(&format!("Checking updates for {}...", name));
-            // TODO: Implement logic to check for updates
+
+        if all_deps.is_empty() {
+            pacm_logger::finish("No dependencies to update");
+            return Ok(());
         }
 
+        for (name, _current_range) in all_deps {
+            pacm_logger::status(&format!("Updating {}...", name));
+
+            if let Some(dep_type) = pkg.has_dependency(&name) {
+                if let Err(e) = self.install_manager.install_single(
+                    project_dir,
+                    &name,
+                    "latest",
+                    dep_type,
+                    false, // save_exact
+                    false, // no_save
+                    true,  // force
+                    debug,
+                ) {
+                    pacm_logger::error(&format!("Failed to update {}: {}", name, e));
+                }
+            }
+        }
+
+        pacm_logger::finish("All dependencies updated");
         Ok(())
     }
 
@@ -57,23 +73,45 @@ impl UpdateManager {
         packages: &[String],
         debug: bool,
     ) -> Result<()> {
+        let mut updated_count = 0;
+        let mut failed_count = 0;
+
         for package in packages {
             pacm_logger::status(&format!("Updating {}...", package));
 
             if let Some(dep_type) = pkg.has_dependency(package) {
-                self.install_manager.install_single(
+                match self.install_manager.install_single(
                     project_dir,
                     package,
                     "latest",
                     dep_type,
-                    false,
-                    false,
-                    true,
+                    false, // save_exact
+                    false, // no_save
+                    true,  // force - ensures we get the latest version
                     debug,
-                )?;
+                ) {
+                    Ok(()) => {
+                        updated_count += 1;
+                        pacm_logger::finish(&format!("Updated {}", package));
+                    }
+                    Err(e) => {
+                        failed_count += 1;
+                        pacm_logger::error(&format!("Failed to update {}: {}", package, e));
+                    }
+                }
             } else {
+                failed_count += 1;
                 pacm_logger::error(&format!("Package '{}' is not installed", package));
             }
+        }
+
+        if failed_count == 0 {
+            pacm_logger::finish(&format!("Successfully updated {} packages", updated_count));
+        } else {
+            pacm_logger::finish(&format!(
+                "Updated {} packages, {} failed",
+                updated_count, failed_count
+            ));
         }
 
         Ok(())

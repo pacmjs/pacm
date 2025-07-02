@@ -46,7 +46,7 @@ Add screenshots or demo output if your changes affect the user interface or outp
 - [ ] I have performed a self-review of my code
 - [ ] I have commented my code where necessary
 - [ ] My changes generate no new warnings
-- [ ] I have run `cargo fmt` and `cargo clippy`
+- [ ] I have run `cargo fmt` and `cargo check`
 
 **Testing:**
 - [ ] I have added tests that prove my fix is effective or that my feature works

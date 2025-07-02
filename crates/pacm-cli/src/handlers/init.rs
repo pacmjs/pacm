@@ -7,14 +7,14 @@ use pacm_core;
 pub struct InitHandler;
 
 impl InitHandler {
-    pub fn init_project(yes: &Option<bool>) -> Result<()> {
+    pub fn init_project(yes: bool) -> Result<()> {
         let current_dir = env::current_dir()?;
         let default_name = current_dir
             .file_name()
             .and_then(|name| name.to_str())
             .unwrap_or("my-package");
 
-        let use_defaults = yes.unwrap_or(false);
+        let use_defaults = yes;
 
         let project_name = if use_defaults {
             default_name.to_string()

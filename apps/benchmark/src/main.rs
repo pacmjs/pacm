@@ -155,7 +155,7 @@ fn run_all_benchmarks(detailed: bool, iterations: u32) -> Result<(), Box<dyn std
     );
     let install_start = Instant::now();
     monitor.start_timer("installation_category");
-    run_install_benchmarks_internal(iterations)?;
+    run_install_benchmarks(vec![], iterations)?;
     monitor.stop_timer("installation_category");
     println!(
         "{} Installation completed in {:?}",
@@ -170,7 +170,7 @@ fn run_all_benchmarks(detailed: bool, iterations: u32) -> Result<(), Box<dyn std
     );
     let resolution_start = Instant::now();
     monitor.start_timer("resolution_category");
-    run_resolution_benchmarks_internal(iterations)?;
+    run_resolution_benchmarks(iterations)?;
     monitor.stop_timer("resolution_category");
     println!(
         "{} Resolution completed in {:?}",
@@ -185,7 +185,7 @@ fn run_all_benchmarks(detailed: bool, iterations: u32) -> Result<(), Box<dyn std
     );
     let cache_start = Instant::now();
     monitor.start_timer("cache_category");
-    run_cache_benchmarks_internal(iterations)?;
+    run_cache_benchmarks(iterations)?;
     monitor.stop_timer("cache_category");
     println!(
         "{} Cache completed in {:?}",
@@ -200,7 +200,7 @@ fn run_all_benchmarks(detailed: bool, iterations: u32) -> Result<(), Box<dyn std
     );
     let download_start = Instant::now();
     monitor.start_timer("download_category");
-    run_download_benchmarks_internal(iterations)?;
+    run_download_benchmarks(iterations)?;
     monitor.stop_timer("download_category");
     println!(
         "{} Download completed in {:?}",
@@ -282,37 +282,21 @@ fn run_install_benchmarks(
     if !packages.is_empty() {
         println!("Target packages: {:?}", packages);
     }
-    run_install_benchmarks_internal(iterations)
-}
-
-fn run_install_benchmarks_internal(iterations: u32) -> Result<(), Box<dyn std::error::Error>> {
     let mut install_bench = InstallBenchmarks::new();
     install_bench.run_all(iterations)
 }
 
 fn run_resolution_benchmarks(iterations: u32) -> Result<(), Box<dyn std::error::Error>> {
-    run_resolution_benchmarks_internal(iterations)
-}
-
-fn run_resolution_benchmarks_internal(iterations: u32) -> Result<(), Box<dyn std::error::Error>> {
     let mut resolution_bench = ResolutionBenchmarks::new();
     resolution_bench.run_all(iterations)
 }
 
 fn run_cache_benchmarks(iterations: u32) -> Result<(), Box<dyn std::error::Error>> {
-    run_cache_benchmarks_internal(iterations)
-}
-
-fn run_cache_benchmarks_internal(iterations: u32) -> Result<(), Box<dyn std::error::Error>> {
     let mut cache_bench = CacheBenchmarks::new();
     cache_bench.run_all(iterations)
 }
 
 fn run_download_benchmarks(iterations: u32) -> Result<(), Box<dyn std::error::Error>> {
-    run_download_benchmarks_internal(iterations)
-}
-
-fn run_download_benchmarks_internal(iterations: u32) -> Result<(), Box<dyn std::error::Error>> {
     let mut download_bench = DownloadBenchmarks::new();
     download_bench.run_all(iterations)
 }

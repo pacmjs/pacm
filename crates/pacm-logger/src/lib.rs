@@ -20,6 +20,7 @@ pub enum LogLevel {
 }
 
 impl Logger {
+    #[must_use]
     pub fn new(quiet: bool) -> Self {
         Self {
             start_time: Instant::now(),
@@ -45,7 +46,7 @@ impl Logger {
         }
 
         self.clear_current_line();
-        print!("{}", message);
+        print!("{message}");
         let _ = io::stdout().flush();
 
         if let Ok(mut line) = self.current_line.lock() {
@@ -59,7 +60,7 @@ impl Logger {
         }
 
         self.clear_current_line();
-        println!("{}", message);
+        println!("{message}");
 
         if let Ok(mut line) = self.current_line.lock() {
             line.clear();
@@ -100,7 +101,7 @@ impl Logger {
             ),
         };
 
-        println!("{} {}", prefix, colored_message);
+        println!("{prefix} {colored_message}");
 
         if let Ok(mut line) = self.current_line.lock() {
             line.clear();
@@ -119,7 +120,7 @@ impl Logger {
             "{} {} {}",
             "✓".bright_green().bold(),
             message.bright_green(),
-            format!("[{}]", time_str).bright_black()
+            format!("[{time_str}]").bright_black()
         );
 
         self.finish_line(&final_message);
@@ -130,7 +131,7 @@ impl Logger {
         }
 
         let spinners = ["◐", "◓", "◑", "◒"];
-        let spinner = spinners[current % spinners.len()];
+        let spinner = spinners.get(current % spinners.len()).unwrap_or(&"◐");
 
         let progress_text = if total > 0 {
             format!(
@@ -192,7 +193,7 @@ pub fn init_logger(quiet: bool) {
 fn get_logger() -> &'static Logger {
     LOGGER
         .get()
-        .expect("Logger not initialized. Call init_logger() first.")
+        .unwrap_or_else(|| panic!("Logger not initialized. Call init_logger() first."))
 }
 
 pub fn update_line(message: &str) {

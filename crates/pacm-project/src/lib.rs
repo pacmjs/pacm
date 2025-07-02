@@ -21,6 +21,7 @@ impl PackageJson {
         DependencyManager::remove_dep(self, name);
     }
 
+    #[must_use]
     pub fn has_dependency(&self, name: &str) -> Option<DependencyType> {
         DependencyManager::has_dep(self, name)
     }

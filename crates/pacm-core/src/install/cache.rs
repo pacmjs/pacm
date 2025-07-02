@@ -1,4 +1,6 @@
+use rayon::prelude::*;
 use std::collections::HashMap;
+use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -43,34 +45,48 @@ impl CacheManager {
                     return Ok(());
                 }
 
-                let mut cache = self.index.lock().await;
+                let cached_packages: Vec<_> = entries
+                    .par_iter()
+                    .filter_map(|entry| {
+                        let dir_name = entry.file_name();
+                        if let Some(name_str) = dir_name.to_str() {
+                            if let Some((pkg_name, version, hash)) =
+                                Self::parse_entry_name_static(name_str)
+                            {
+                                let store_path = entry.path();
+                                if store_path.is_dir() {
+                                    let package_dir = store_path.join("package");
+                                    if package_dir.exists() {
+                                        let cached_pkg = CachedPackage {
+                                            name: pkg_name.clone(),
+                                            version: version.clone(),
+                                            resolved: format!(
+                                                "https://registry.npmjs.org/{}/-/{}-{}.tgz",
+                                                pkg_name, pkg_name, version
+                                            ),
+                                            integrity: format!("sha256-{}", hash),
+                                            store_path,
+                                        };
 
-                for entry in entries {
-                    let dir_name = entry.file_name();
-                    if let Some(name_str) = dir_name.to_str() {
-                        if let Some((pkg_name, version, hash)) =
-                            Self::parse_entry_name_static(name_str)
-                        {
-                            let store_path = entry.path();
-                            if store_path.is_dir() {
-                                let package_dir = store_path.join("package");
-                                if package_dir.exists() {
-                                    let cached_pkg = CachedPackage {
-                                        name: pkg_name.clone(),
-                                        version: version.clone(),
-                                        resolved: format!(
-                                            "https://registry.npmjs.org/{}/-/{}-{}.tgz",
-                                            pkg_name, pkg_name, version
-                                        ),
-                                        integrity: format!("sha256-{}", hash),
-                                        store_path,
-                                    };
-
-                                    cache.insert(format!("{}@{}", pkg_name, version), cached_pkg);
+                                        Some((format!("{}@{}", pkg_name, version), cached_pkg))
+                                    } else {
+                                        None
+                                    }
+                                } else {
+                                    None
                                 }
+                            } else {
+                                None
                             }
+                        } else {
+                            None
                         }
-                    }
+                    })
+                    .collect();
+
+                let mut cache = self.index.lock().await;
+                for (key, cached_pkg) in cached_packages {
+                    cache.insert(key, cached_pkg);
                 }
             }
             Err(_) => {}
@@ -102,11 +118,51 @@ impl CacheManager {
             .collect()
     }
 
+    pub async fn get_batch_direct(&self, deps: &[(String, String)]) -> Vec<Option<CachedPackage>> {
+        let cache = self.index.lock().await;
+        deps.iter()
+            .map(|(name, version_range)| {
+                let key = format!("{}@{}", name, version_range);
+                if let Some(cached) = cache.get(&key) {
+                    return Some(cached.clone());
+                }
+
+                if version_range == "latest"
+                    || version_range.is_empty()
+                    || (!version_range.chars().next().unwrap_or('0').is_ascii_digit())
+                {
+                    let name_prefix = format!("{}@", name);
+
+                    let versions: Vec<_> = cache
+                        .iter()
+                        .filter(|(key, _)| key.starts_with(&name_prefix))
+                        .map(|(_, cached_pkg)| cached_pkg)
+                        .collect();
+
+                    if let Some(cached_pkg) = versions.first() {
+                        return Some((*cached_pkg).clone());
+                    }
+                }
+
+                None
+            })
+            .collect()
+    }
+
     pub async fn are_all_cached(&self, packages: &[(String, String)]) -> bool {
         let cache = self.index.lock().await;
-        packages.iter().all(|(name, version)| {
-            let key = format!("{}@{}", name, version);
-            cache.contains_key(&key)
+        packages.iter().all(|(name, version_range)| {
+            if version_range.chars().next().unwrap_or('0').is_ascii_digit()
+                && !version_range.contains('^')
+                && !version_range.contains('~')
+                && !version_range.contains('*')
+            {
+                let key = format!("{}@{}", name, version_range);
+                return cache.contains_key(&key);
+            }
+
+            let name_prefix = format!("{}@", name);
+            cache.keys().any(|key| key.starts_with(&name_prefix))
         })
     }
 
@@ -146,6 +202,15 @@ impl CacheManager {
     pub async fn len(&self) -> usize {
         let cache = self.index.lock().await;
         cache.len()
+    }
+
+    pub async fn find_versions_for_package(&self, package_name: &str) -> Vec<(String, PathBuf)> {
+        let cache = self.index.lock().await;
+        cache
+            .values()
+            .filter(|cached_pkg| cached_pkg.name == package_name)
+            .map(|cached_pkg| (cached_pkg.version.clone(), cached_pkg.store_path.clone()))
+            .collect()
     }
 }
 

@@ -16,7 +16,7 @@ impl DependencyManager {
         } else if version.starts_with('^') || version.starts_with('~') || version.contains('-') {
             version.to_string()
         } else {
-            format!("^{}", version)
+            format!("^{version}")
         };
 
         Self::remove_dep(package_json, name);
@@ -64,6 +64,7 @@ impl DependencyManager {
         }
     }
 
+    #[must_use]
     pub fn has_dep(package_json: &PackageJson, name: &str) -> Option<DependencyType> {
         if let Some(deps) = &package_json.dependencies {
             if deps.contains_key(name) {

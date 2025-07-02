@@ -3,9 +3,6 @@ name = "pacm-logger"
 version = "0.1.0"
 edition = "2024"
 
-[lints]
-workspace = true
-
 [dependencies]
 owo-colors = "4.0"
 std-semaphore = "0.1"

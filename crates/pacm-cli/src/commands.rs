@@ -48,9 +48,9 @@ pub enum Commands {
     /// Initializes a new package.json file
     #[command(alias = "new")]
     Init {
-        // Skips interactive prompts
+        /// Skips interactive prompts
         #[arg(short = 'y', long = "yes")]
-        yes: Option<bool>,
+        yes: bool,
     },
     /// Runs a script defined in package.json
     #[command(alias = "r")]
@@ -58,6 +58,8 @@ pub enum Commands {
         /// The name of the script (e.g. build, test, etc.)
         script: String,
     },
+    /// Starts the application (runs start script or main entry point)
+    Start,
     /// Removes packages
     #[command(aliases = ["rm", "uninstall"])]
     Remove {

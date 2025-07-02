@@ -98,7 +98,7 @@ impl InstallBenchmarks {
 
             self.monitor.start_timer(&operation_name);
 
-            match manager.install_single_dependency(
+            match manager.install_single(
                 project_path,
                 package,
                 "latest",
@@ -144,7 +144,7 @@ impl InstallBenchmarks {
 
         let temp_warmup = create_temp_project()?;
         let manager = InstallManager::new();
-        let _ = manager.install_single_dependency(
+        let _ = manager.install_single(
             temp_warmup.path().to_str().unwrap(),
             package,
             "latest",
@@ -161,7 +161,7 @@ impl InstallBenchmarks {
 
             self.monitor.start_timer(&operation_name);
 
-            match manager.install_single_dependency(
+            match manager.install_single(
                 project_path,
                 package,
                 "latest",

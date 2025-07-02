@@ -54,7 +54,7 @@ pub fn install_single(
         .map_err(|e| anyhow::anyhow!(e))
 }
 
-pub fn install_single_enhanced(
+pub fn install_enhanced(
     project_dir: &str,
     name: &str,
     version_range: &str,
@@ -79,6 +79,29 @@ pub fn install_single_enhanced(
         .map_err(|e| anyhow::anyhow!(e))
 }
 
+pub fn install_multiple(
+    project_dir: &str,
+    packages: &[(String, String)], // (name, version_range) pairs
+    dep_type: DependencyType,
+    save_exact: bool,
+    no_save: bool,
+    force: bool,
+    debug: bool,
+) -> anyhow::Result<()> {
+    let manager = InstallManager::new();
+    manager
+        .install_multiple(
+            project_dir,
+            packages,
+            dep_type,
+            save_exact,
+            no_save,
+            force,
+            debug,
+        )
+        .map_err(|e| anyhow::anyhow!(e))
+}
+
 pub fn remove_dep(
     project_dir: &str,
     name: &str,
@@ -87,20 +110,20 @@ pub fn remove_dep(
 ) -> anyhow::Result<()> {
     let manager = RemoveManager;
     manager
-        .remove_dependency(project_dir, name, dev_only, debug)
+        .remove_dep(project_dir, name, dev_only, debug)
         .map_err(|e| anyhow::anyhow!(e))
 }
 
 pub fn update_deps(project_dir: &str, packages: &[String], debug: bool) -> anyhow::Result<()> {
     let manager = UpdateManager::new();
     manager
-        .update_dependencies(project_dir, packages, debug)
+        .update_deps(project_dir, packages, debug)
         .map_err(|e| anyhow::anyhow!(e))
 }
 
 pub fn list_deps(project_dir: &str, tree: bool, depth: Option<u32>) -> anyhow::Result<()> {
     let manager = ListManager;
     manager
-        .list_dependencies(project_dir, tree, depth)
+        .list_deps(project_dir, tree, depth)
         .map_err(|e| anyhow::anyhow!(e))
 }
