@@ -33,15 +33,24 @@ impl CacheIndex {
         pacm_logger::debug("Building cache index...", debug);
         let start = std::time::Instant::now();
 
-        if let Ok(entries) = std::fs::read_dir(&npm_dir) {
-            for entry in entries.flatten() {
-                let dir_name = entry.file_name();
-                if let Some(name_str) = dir_name.to_str() {
-                    if let Some((pkg_name, version, _hash)) = parse_entry_name(name_str) {
-                        let store_path = entry.path();
-                        if store_path.is_dir() && store_path.join("package").exists() {
-                            let key = format!("{}@{}", pkg_name, version);
-                            cache.insert(key, store_path);
+        if let Ok(package_entries) = std::fs::read_dir(&npm_dir) {
+            for package_entry in package_entries.flatten() {
+                if package_entry.file_type().map_or(false, |ft| ft.is_dir()) {
+                    let package_name =
+                        Self::unsanitize_package_name(&package_entry.file_name().to_string_lossy());
+
+                    if let Ok(version_entries) = std::fs::read_dir(package_entry.path()) {
+                        for version_entry in version_entries.flatten() {
+                            if version_entry.file_type().map_or(false, |ft| ft.is_dir()) {
+                                let version =
+                                    version_entry.file_name().to_string_lossy().to_string();
+                                let package_dir = version_entry.path().join("package");
+
+                                if package_dir.exists() {
+                                    let key = format!("{}@{}", package_name, version);
+                                    cache.insert(key, version_entry.path());
+                                }
+                            }
                         }
                     }
                 }
@@ -65,6 +74,10 @@ impl CacheIndex {
         cache.get(key).cloned()
     }
 
+    fn unsanitize_package_name(safe_name: &str) -> String {
+        safe_name.replace("_at_", "@").replace("_slash_", "/")
+    }
+
     pub async fn find_versions_for_package(&self, package_name: &str) -> Vec<(String, PathBuf)> {
         let cache = self.index.lock().await;
         let name_prefix = format!("{}@", package_name);
@@ -78,25 +91,4 @@ impl CacheIndex {
             })
             .collect()
     }
-}
-
-pub fn parse_entry_name(name: &str) -> Option<(String, String, String)> {
-    if let Some(at_pos) = name.find('@') {
-        let pkg_part = &name[..at_pos];
-        let rest = &name[at_pos + 1..];
-
-        if let Some(dash_pos) = rest.find('-') {
-            let version = &rest[..dash_pos];
-            let hash = &rest[dash_pos + 1..];
-
-            let pkg_name = if pkg_part.contains("_at_") {
-                pkg_part.replace("_at_", "@").replace("_slash_", "/")
-            } else {
-                pkg_part.to_string()
-            };
-
-            return Some((pkg_name, version.to_string(), hash.to_string()));
-        }
-    }
-    None
 }

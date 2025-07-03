@@ -1,3 +1,5 @@
+pub mod clean;
+pub mod help;
 pub mod init;
 pub mod install;
 pub mod list;
@@ -6,6 +8,8 @@ pub mod run;
 pub mod start;
 pub mod update;
 
+pub use clean::CleanHandler;
+pub use help::HelpHandler;
 pub use init::InitHandler;
 pub use install::InstallHandler;
 pub use list::ListHandler;

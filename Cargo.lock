@@ -1465,12 +1465,15 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "clap",
+ "colored",
  "inquire",
  "owo-colors",
+ "pacm-constants",
  "pacm-core",
  "pacm-logger",
  "pacm-project",
  "pacm-runtime",
+ "pacm-store",
  "pacm-utils",
  "tokio",
 ]
@@ -1486,6 +1489,7 @@ dependencies = [
  "anyhow",
  "futures",
  "indexmap",
+ "owo-colors",
  "pacm-constants",
  "pacm-error",
  "pacm-lock",

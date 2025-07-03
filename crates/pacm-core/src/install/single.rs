@@ -824,52 +824,43 @@ impl SingleInstaller {
             name.to_string()
         };
 
-        let package_prefix = format!("{safe_package_name}@{resolved_version}-");
+        let package_dir = npm_dir.join(&safe_package_name);
 
         if debug {
             pacm_logger::debug(
-                &format!("Fast checking store for prefix: {}", package_prefix),
+                &format!(
+                    "Fast checking store for package: {} version: {}",
+                    safe_package_name, resolved_version
+                ),
                 debug,
             );
         }
 
-        match std::fs::read_dir(&npm_dir) {
-            Ok(entries) => {
-                for entry in entries.flatten() {
-                    let dir_name = entry.file_name();
-                    if let Some(name_str) = dir_name.to_str() {
-                        if name_str.starts_with(&package_prefix) {
-                            let store_path = entry.path();
-                            if store_path.is_dir() && store_path.join("package").exists() {
-                                if debug {
-                                    pacm_logger::debug(
-                                        &format!("Fast store hit: {}", name_str),
-                                        debug,
-                                    );
-                                }
+        if package_dir.exists() {
+            let version_dir = package_dir.join(&resolved_version);
+            let package_path = version_dir.join("package");
 
-                                if let Some((pkg_name, pkg_version, _hash)) =
-                                    self.parse_store_entry_name(name_str)
-                                {
-                                    return Ok(Some(CachedPackage {
-                                        name: pkg_name,
-                                        version: pkg_version,
-                                        resolved: format!(
-                                            "https://registry.npmjs.org/{}/-/{}-{}.tgz",
-                                            name,
-                                            name.split('/').last().unwrap_or(name),
-                                            resolved_version
-                                        ),
-                                        integrity: String::new(), // Will be filled if needed
-                                        store_path,
-                                    }));
-                                }
-                            }
-                        }
-                    }
+            if package_path.exists() {
+                if debug {
+                    pacm_logger::debug(
+                        &format!("Fast store hit: {}/{}", safe_package_name, resolved_version),
+                        debug,
+                    );
                 }
+
+                return Ok(Some(CachedPackage {
+                    name: name.to_string(),
+                    version: resolved_version.clone(),
+                    resolved: format!(
+                        "https://registry.npmjs.org/{}/-/{}-{}.tgz",
+                        name,
+                        name.split('/').last().unwrap_or(name),
+                        resolved_version
+                    ),
+                    integrity: String::new(), // Will be filled if needed
+                    store_path: version_dir,
+                }));
             }
-            Err(_) => return Ok(None),
         }
 
         Ok(None)
@@ -921,28 +912,6 @@ impl SingleInstaller {
 
         pacm_logger::finish(&format!("{} linked instantly from store", name));
         Ok(())
-    }
-
-    fn parse_store_entry_name(&self, name: &str) -> Option<(String, String, String)> {
-        // Store format: package_name@version-hash
-        if let Some(at_pos) = name.find('@') {
-            let pkg_name_part = &name[..at_pos];
-            let version_hash_part = &name[at_pos + 1..];
-
-            if let Some(dash_pos) = version_hash_part.rfind('-') {
-                let version = &version_hash_part[..dash_pos];
-                let hash = &version_hash_part[dash_pos + 1..];
-
-                let pkg_name = if pkg_name_part.contains("_at_") {
-                    pkg_name_part.replace("_at_", "@").replace("_slash_", "/")
-                } else {
-                    pkg_name_part.to_string()
-                };
-
-                return Some((pkg_name, version.to_string(), hash.to_string()));
-            }
-        }
-        None
     }
 }
 

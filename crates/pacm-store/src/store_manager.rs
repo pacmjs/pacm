@@ -1,4 +1,3 @@
-use sha2::{Digest, Sha256};
 use std::{
     fs, io,
     path::{Path, PathBuf},
@@ -20,23 +19,18 @@ impl StoreManager {
         version: &str,
         tarball_bytes: &[u8],
     ) -> io::Result<PathBuf> {
-        let hash = {
-            let mut hasher = Sha256::new();
-            hasher.update(tarball_bytes);
-            format!("{:x}", hasher.finalize())
-        };
-
         let safe_package_name = Self::sanitize_package_name(package_name);
-        let path = Self::get_store_path()
+        let package_path = Self::get_store_path()
             .join("npm")
-            .join(format!("{safe_package_name}@{version}-{hash}"));
+            .join(&safe_package_name)
+            .join(version);
 
-        if path.exists() {
-            return Ok(path);
+        if package_path.exists() {
+            return Ok(package_path);
         }
 
-        Self::extract_and_store_package(&path, tarball_bytes)?;
-        Ok(path)
+        Self::extract_and_store_package(&package_path, tarball_bytes)?;
+        Ok(package_path)
     }
 
     fn sanitize_package_name(package_name: &str) -> String {

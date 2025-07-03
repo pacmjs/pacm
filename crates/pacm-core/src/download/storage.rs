@@ -34,35 +34,20 @@ impl PackageStorage {
             pkg.name.to_string()
         };
 
-        let npm_dir = store_base.join("npm");
-        if !npm_dir.exists() {
-            return Ok(None);
-        }
+        let package_path = store_base
+            .join("npm")
+            .join(&safe_package_name)
+            .join(&pkg.version);
 
-        let package_prefix = format!("{safe_package_name}@{}-", pkg.version);
-
-        match std::fs::read_dir(&npm_dir) {
-            Ok(entries) => {
-                for entry in entries.flatten() {
-                    let dir_name = entry.file_name();
-                    if let Some(name_str) = dir_name.to_str() {
-                        if name_str.starts_with(&package_prefix) {
-                            let store_path = entry.path();
-                            if store_path.is_dir() {
-                                let package_dir = store_path.join("package");
-                                if package_dir.exists() {
-                                    pacm_logger::debug(
-                                        &format!("Found in store: {}", name_str),
-                                        debug,
-                                    );
-                                    return Ok(Some(store_path));
-                                }
-                            }
-                        }
-                    }
-                }
+        if package_path.exists() {
+            let package_dir = package_path.join("package");
+            if package_dir.exists() {
+                pacm_logger::debug(
+                    &format!("Found in store: {}@{}", pkg.name, pkg.version),
+                    debug,
+                );
+                return Ok(Some(package_path));
             }
-            Err(_) => return Ok(None),
         }
 
         Ok(None)

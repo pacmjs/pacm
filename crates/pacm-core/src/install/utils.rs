@@ -14,36 +14,85 @@ impl InstallUtils {
     pub fn check_existing(
         path: &PathBuf,
         name: &str,
-        version_range: &str,
+        _version_range: &str,
         dep_type: DependencyType,
         save_exact: bool,
         no_save: bool,
         debug: bool,
     ) -> Result<bool> {
-        let mut pkg = read_package_json(path)
-            .map_err(|e| PackageManagerError::PackageJsonError(e.to_string()))?;
+        let node_modules = path.join("node_modules");
+        let package_dir = node_modules.join(name);
 
-        if let Some(existing_type) = pkg.has_dependency(name) {
-            if debug {
-                pacm_logger::debug(
-                    &format!(
-                        "Found existing dependency: {} (type: {:?})",
-                        name, existing_type
-                    ),
-                    debug,
-                );
+        if package_dir.exists() {
+            let package_json_path = package_dir.join("package.json");
+            if package_json_path.exists() {
+                if let Ok(content) = std::fs::read_to_string(&package_json_path) {
+                    if let Ok(pkg_json) = serde_json::from_str::<serde_json::Value>(&content) {
+                        if let Some(installed_version) =
+                            pkg_json.get("version").and_then(|v| v.as_str())
+                        {
+                            if debug {
+                                pacm_logger::debug(
+                                    &format!(
+                                        "Found existing package {} in node_modules with version {}",
+                                        name, installed_version
+                                    ),
+                                    debug,
+                                );
+                            }
+
+                            if !no_save {
+                                let mut pkg = read_package_json(path).map_err(|e| {
+                                    PackageManagerError::PackageJsonError(e.to_string())
+                                })?;
+
+                                if pkg.has_dependency(name).is_none() {
+                                    let version_to_save = if save_exact {
+                                        installed_version.to_string()
+                                    } else {
+                                        format!("^{}", installed_version)
+                                    };
+                                    pkg.add_dependency(
+                                        name,
+                                        &version_to_save,
+                                        dep_type,
+                                        save_exact,
+                                    );
+                                    write_package_json(path, &pkg).map_err(|e| {
+                                        PackageManagerError::PackageJsonError(e.to_string())
+                                    })?;
+
+                                    if debug {
+                                        pacm_logger::debug(
+                                            &format!(
+                                                "Added {} to package.json with version {}",
+                                                name, version_to_save
+                                            ),
+                                            debug,
+                                        );
+                                    }
+                                } else {
+                                    if debug {
+                                        pacm_logger::debug(
+                                            &format!(
+                                                "Package {} already exists in package.json, not modifying version",
+                                                name
+                                            ),
+                                            debug,
+                                        );
+                                    }
+                                }
+                            }
+
+                            pacm_logger::finish(&format!(
+                                "{} is already installed (found in node_modules)",
+                                name
+                            ));
+                            return Ok(true);
+                        }
+                    }
+                }
             }
-
-            if !no_save {
-                pkg.add_dependency(name, version_range, dep_type, save_exact);
-                write_package_json(path, &pkg)
-                    .map_err(|e| PackageManagerError::PackageJsonError(e.to_string()))?;
-
-                Self::update_pkg_json_existing(path, name, version_range, dep_type)?;
-            }
-
-            pacm_logger::finish(&format!("{} is already installed (updated)", name));
-            return Ok(true);
         }
 
         Ok(false)
@@ -216,38 +265,52 @@ impl InstallUtils {
             return Ok(None);
         }
 
-        match std::fs::read_dir(&npm_dir) {
-            Ok(entries) => {
-                for entry in entries.flatten() {
-                    let dir_name = entry.file_name();
-                    if let Some(name_str) = dir_name.to_str() {
-                        if let Some((pkg_name, version, _hash)) =
-                            Self::parse_store_entry_name(name_str)
-                        {
-                            if pkg_name == name {
-                                let store_path = entry.path();
-                                let package_dir = store_path.join("package");
+        let safe_package_name = if name.starts_with('@') {
+            name.replace('@', "_at_").replace('/', "_slash_")
+        } else {
+            name.to_string()
+        };
 
-                                if package_dir.exists() {
-                                    if debug {
-                                        pacm_logger::debug(
-                                            &format!(
-                                                "Found {} version {} in store at {:?}",
-                                                pkg_name, version, store_path
-                                            ),
-                                            debug,
-                                        );
-                                    }
-                                    return Ok(Some((version, store_path)));
-                                }
+        let package_dir = npm_dir.join(&safe_package_name);
+
+        if !package_dir.exists() {
+            if debug {
+                pacm_logger::debug(&format!("Package {} not found in store", name), debug);
+            }
+            return Ok(None);
+        }
+
+        // For now, return the first version found. In the future, we could implement
+        // version resolution here based on the version_range
+        match std::fs::read_dir(&package_dir) {
+            Ok(version_entries) => {
+                for version_entry in version_entries.flatten() {
+                    if version_entry.file_type().map_or(false, |ft| ft.is_dir()) {
+                        let version = version_entry.file_name().to_string_lossy().to_string();
+                        let store_path = version_entry.path();
+                        let package_path = store_path.join("package");
+
+                        if package_path.exists() {
+                            if debug {
+                                pacm_logger::debug(
+                                    &format!(
+                                        "Found {} version {} in store at {:?}",
+                                        name, version, store_path
+                                    ),
+                                    debug,
+                                );
                             }
+                            return Ok(Some((version, store_path)));
                         }
                     }
                 }
             }
             Err(e) => {
                 if debug {
-                    pacm_logger::debug(&format!("Error reading store directory: {}", e), debug);
+                    pacm_logger::debug(
+                        &format!("Error reading package directory for {}: {}", name, e),
+                        debug,
+                    );
                 }
             }
         }
@@ -261,44 +324,22 @@ impl InstallUtils {
         Ok(None)
     }
 
-    fn parse_store_entry_name(name: &str) -> Option<(String, String, String)> {
-        if let Some(at_pos) = name.find('@') {
-            let pkg_part = &name[..at_pos];
-            let rest = &name[at_pos + 1..];
-
-            if let Some(dash_pos) = rest.find('-') {
-                let version = &rest[..dash_pos];
-                let hash = &rest[dash_pos + 1..];
-
-                let pkg_name = if pkg_part.contains("_at_") {
-                    pkg_part.replace("_at_", "@").replace("_slash_", "/")
-                } else {
-                    pkg_part.to_string()
-                };
-
-                return Some((pkg_name, version.to_string(), hash.to_string()));
-            }
-        }
-        None
-    }
-
     pub fn check_existing_pkgs(
         path: &PathBuf,
         deps: &[(String, String)],
         use_lockfile: bool,
         debug: bool,
     ) -> Result<Vec<(String, String)>> {
-        if !use_lockfile {
-            return Ok(deps.to_vec());
-        }
-
         let node_modules = path.join("node_modules");
         if !node_modules.exists() {
+            if debug {
+                pacm_logger::debug("node_modules directory does not exist", debug);
+            }
             return Ok(deps.to_vec());
         }
 
         let lock_path = path.join("pacm.lock");
-        let lockfile = if lock_path.exists() {
+        let lockfile = if lock_path.exists() && use_lockfile {
             Some(
                 PacmLock::load(&lock_path)
                     .map_err(|e| PackageManagerError::LockfileError(e.to_string()))?,
@@ -328,7 +369,7 @@ impl InstallUtils {
                                             if debug {
                                                 pacm_logger::debug(
                                                     &format!(
-                                                        "Package {} already correctly installed",
+                                                        "Package {} already correctly installed in node_modules (verified with lockfile)",
                                                         name
                                                     ),
                                                     debug,
@@ -337,6 +378,17 @@ impl InstallUtils {
                                             continue;
                                         }
                                     }
+                                } else {
+                                    if debug {
+                                        pacm_logger::debug(
+                                            &format!(
+                                                "Package {} found in node_modules with version {}",
+                                                name, installed_version
+                                            ),
+                                            debug,
+                                        );
+                                    }
+                                    continue;
                                 }
 
                                 if debug {

@@ -6,7 +6,8 @@ use clap::{Parser, Subcommand};
 #[command(author = "Jonas Franke <me@binaryblazer.me>")]
 #[command(propagate_version = true)]
 #[command(about = "A super fast package manager for JavaScript/TypeScript", long_about = None)]
-#[command(after_help = "For more information, visit <https://github.com/pacmjs/pacm>")]
+#[command(disable_help_flag = true)]
+#[command(disable_help_subcommand = true)]
 pub struct Cli {
     #[command(subcommand)]
     pub command: Commands,
@@ -92,5 +93,26 @@ pub enum Commands {
         /// Show only top-level dependencies
         #[arg(long)]
         depth: Option<u32>,
+    },
+    /// Cleans package cache and optionally local node_modules
+    Clean {
+        /// Clear the global package cache/store
+        #[arg(long = "cache")]
+        cache: bool,
+        /// Clear local node_modules directory
+        #[arg(long = "modules")]
+        modules: bool,
+        /// Skip confirmation prompts
+        #[arg(short = 'y', long = "yes")]
+        yes: bool,
+        /// Enable debug mode for verbose output
+        #[arg(long)]
+        debug: bool,
+    },
+    /// Shows help information for pacm or a specific command
+    Help {
+        /// The command to show help for (optional)
+        #[arg()]
+        command: Option<String>,
     },
 }

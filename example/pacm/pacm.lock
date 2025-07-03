@@ -1,104 +1,14 @@
 {
   "dependencies": {
-    "tailwindcss": {
-      "version": "4.1.11",
-      "resolved": "https://registry.npmjs.org/tailwindcss/-/tailwindcss-4.1.11.tgz",
-      "integrity": "sha256-e2a52e12d901b6af6121725ba1a21ff66005773f651eaf95c5169de9795ffbf1"
+    "express": {
+      "version": "5.1.0",
+      "resolved": "https://registry.npmjs.org/express/-/express-5.1.0.tgz",
+      "integrity": "sha512-DT9ck5YIRU+8GYzzU5kT3eHGA5iL+1Zd0EutOmTE9Dtk+Tvuzd23VBU+ec7HPNSTxXYO55gPV/hq4pSBJDjFpA=="
     },
-    "tailwind-merge": {
-      "version": "3.3.1",
-      "resolved": "https://registry.npmjs.org/tailwind-merge/-/tailwind-merge-3.3.1.tgz",
-      "integrity": "sha256-fa1e784b98ac9b556f34f30f524607d1474b56ed558534fcee0db7044646eaad"
-    },
-    "@types/node": {
-      "version": "20.19.4",
-      "resolved": "https://registry.npmjs.org/@types/node/-/@types/node-20.19.4.tgz",
-      "integrity": "sha256-c220e3dff8256c09b15da1847d9c04c7b4a60083f6a72b44467062781762cbb5"
-    },
-    "react": {
-      "version": "19.1.0",
-      "resolved": "https://registry.npmjs.org/react/-/react-19.1.0.tgz",
-      "integrity": "sha256-f15433d7e5b3159b616a74dcdb5248eed16721ec3a199c6009f4464bc6e7ff55"
-    },
-    "framer-motion": {
-      "version": "12.23.0",
-      "resolved": "https://registry.npmjs.org/framer-motion/-/framer-motion-12.23.0.tgz",
-      "integrity": "sha256-ea1aa855f4448e6fe8dba87098e030e3cf69868805c36e082f30864e0e54bc03"
-    },
-    "clsx": {
-      "version": "2.1.1",
-      "resolved": "https://registry.npmjs.org/clsx/-/clsx-2.1.1.tgz",
-      "integrity": "sha256-6320104b491ca645120e8f99589ce663ff1fb337ba80066719a011bd95320303"
-    },
-    "@types/react": {
-      "version": "19.1.8",
-      "resolved": "https://registry.npmjs.org/@types/react/-/@types/react-19.1.8.tgz",
-      "integrity": "sha256-f8ae55067cd4493ad6530ee0038dd6396fc186319eeb5dd3f6e98b0805275b41"
-    },
-    "react-dom": {
-      "version": "19.1.0",
-      "resolved": "https://registry.npmjs.org/react-dom/-/react-dom-19.1.0.tgz",
-      "integrity": "sha256-5604d62da58ade7f057816eb1057b3c7bb7111ff7eeffcc5afb03c7c0b8b5357"
-    },
-    "@tailwindcss/postcss": {
-      "version": "4.1.11",
-      "resolved": "https://registry.npmjs.org/@tailwindcss/postcss/-/@tailwindcss/postcss-4.1.11.tgz",
-      "integrity": "sha256-a49a1f4d3abf773137abb57ebea0002402c8d1a4f533c4f4a5f3ec746baa7562"
-    },
-    "class-variance-authority": {
-      "version": "0.7.1",
-      "resolved": "https://registry.npmjs.org/class-variance-authority/-/class-variance-authority-0.7.1.tgz",
-      "integrity": "sha256-a8bcf3309162b18c914f4f2440d0a5b176e3735e0787108b3be2d4ae7f470611"
-    },
-    "lucide-react": {
-      "version": "0.487.0",
-      "resolved": "https://registry.npmjs.org/lucide-react/-/lucide-react-0.487.0.tgz",
-      "integrity": "sha256-6cb8e2792a4d47249ab1217af4ba41f07c6f9ef77d58286aaaa70f5627d33231"
-    },
-    "next": {
-      "version": "15.2.4",
-      "resolved": "https://registry.npmjs.org/next/-/next-15.2.4.tgz",
-      "integrity": "sha256-d9106d20e1b6ea5e924d72f1e371e0dfeda273a1373d71d8346e346855a1c8bf"
-    },
-    "typescript": {
-      "version": "5.8.3",
-      "resolved": "https://registry.npmjs.org/typescript/-/typescript-5.8.3.tgz",
-      "integrity": "sha256-72e75dbeb92c2e6eb9a34cb59d74fab5c2ee6f32a0324a89405f6165d5a08374"
-    },
-    "prettier": {
-      "version": "3.6.2",
-      "resolved": "https://registry.npmjs.org/prettier/-/prettier-3.6.2.tgz",
-      "integrity": "sha256-bc81ab83674f175a8601b7d013786f48ec2507dd4a5fcf3415831ff13a875bdf"
-    },
-    "shadcn": {
-      "version": "2.7.0",
-      "resolved": "https://registry.npmjs.org/shadcn/-/shadcn-2.7.0.tgz",
-      "integrity": "sha256-2153109689744545c97965b49cb9423528861ef5226da69fc31076e7219887ea"
-    },
-    "tw-animate-css": {
-      "version": "1.3.4",
-      "resolved": "https://registry.npmjs.org/tw-animate-css/-/tw-animate-css-1.3.4.tgz",
-      "integrity": "sha256-91ed95e4ade5a7abdba494b2528a2e499ee00a01dc2fe97d03f75b777bc13e3e"
-    },
-    "tsx": {
-      "version": "4.20.3",
-      "resolved": "https://registry.npmjs.org/tsx/-/tsx-4.20.3.tgz",
-      "integrity": "sha256-9274be93a0f759514d5fa3a407c4a78dc0d26b36865020793a5bb6a81e19748c"
-    },
-    "@types/bun": {
-      "version": "1.2.17",
-      "resolved": "https://registry.npmjs.org/@types/bun/-/@types/bun-1.2.17.tgz",
-      "integrity": "sha256-4e78264fea7e456940b1bf1ed5d67ec97165977c93ca56a83aa5073fc687083b"
-    },
-    "@prisma/client": {
-      "version": "6.11.0",
-      "resolved": "https://registry.npmjs.org/@prisma/client/-/@prisma/client-6.11.0.tgz",
-      "integrity": "sha256-cdd76c6b56f5b21b48a7e1b51768d32778458abe9eab7b0cfc2c024fb21750f7"
-    },
-    "@types/react-dom": {
-      "version": "19.1.6",
-      "resolved": "https://registry.npmjs.org/@types/react-dom/-/@types/react-dom-19.1.6.tgz",
-      "integrity": "sha256-0e6ae13eff9eeef142c24cd2861bd050918dc1ac0c332396e6667f15b7a98281"
+    "chalk": {
+      "version": "5.4.1",
+      "resolved": "https://registry.npmjs.org/chalk/-/chalk-5.4.1.tgz",
+      "integrity": "sha512-zgVZuo2WcZgfUEmsn6eO3kINexW8RAE4maiQ8QNs8CtpPCSyMiYsULR3HQYkm3w8FIA3SberyMJMSldGsW+U3w=="
     }
   }
 }

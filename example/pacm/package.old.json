@@ -1,7 +1,6 @@
 {
   "dependencies": {
     "@prisma/client": "^6.6.0",
-    "chalk": "^5.4.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "framer-motion": "^12.6.3",
@@ -19,13 +18,9 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "prettier": "^3.5.3",
-    "prisma": "^6.6.0",
     "shadcn": "^2.4.0",
     "tailwindcss": "^4",
     "tsx": "^4.19.3",
     "typescript": "^5"
-  },
-  "trustedDependencies": [
-    "@tailwindcss/oxide"
-  ]
+  }
 }

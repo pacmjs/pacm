@@ -1,3 +1,4 @@
+pub mod clean;
 pub mod download;
 pub mod init;
 pub mod install;
@@ -6,6 +7,7 @@ pub mod list;
 pub mod remove;
 pub mod update;
 
+pub use clean::CleanManager;
 pub use init::InitManager;
 pub use install::InstallManager;
 pub use list::ListManager;
@@ -24,6 +26,13 @@ pub fn init_project(
 ) -> Result<()> {
     let manager = InitManager::new();
     manager.init_project(project_dir, name, description, version, license)
+}
+
+pub fn init_interactive(project_dir: &str, yes: bool) -> anyhow::Result<()> {
+    let manager = InitManager::new();
+    manager
+        .init_interactive(project_dir, yes)
+        .map_err(|e| anyhow::anyhow!(e))
 }
 
 pub fn install_all(project_dir: &str, debug: bool) -> anyhow::Result<()> {
@@ -125,5 +134,17 @@ pub fn list_deps(project_dir: &str, tree: bool, depth: Option<u32>) -> anyhow::R
     let manager = ListManager;
     manager
         .list_deps(project_dir, tree, depth)
+        .map_err(|e| anyhow::anyhow!(e))
+}
+
+pub fn clean_cache(debug: bool) -> anyhow::Result<()> {
+    let manager = CleanManager::new();
+    manager.clean_cache(debug).map_err(|e| anyhow::anyhow!(e))
+}
+
+pub fn clean_node_modules(project_dir: &str, debug: bool) -> anyhow::Result<()> {
+    let manager = CleanManager::new();
+    manager
+        .clean_node_modules(project_dir, debug)
         .map_err(|e| anyhow::anyhow!(e))
 }

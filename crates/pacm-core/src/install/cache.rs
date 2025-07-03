@@ -38,43 +38,59 @@ impl CacheManager {
         let start = std::time::Instant::now();
 
         match std::fs::read_dir(&npm_dir) {
-            Ok(entries) => {
-                let entries: Vec<_> = entries.flatten().collect();
+            Ok(package_entries) => {
+                let package_entries: Vec<_> = package_entries.flatten().collect();
 
-                if entries.is_empty() {
+                if package_entries.is_empty() {
                     return Ok(());
                 }
 
-                let cached_packages: Vec<_> = entries
+                let cached_packages: Vec<_> = package_entries
                     .par_iter()
-                    .filter_map(|entry| {
-                        let dir_name = entry.file_name();
-                        if let Some(name_str) = dir_name.to_str() {
-                            if let Some((pkg_name, version, hash)) =
-                                Self::parse_entry_name_static(name_str)
-                            {
-                                let store_path = entry.path();
-                                if store_path.is_dir() {
-                                    let package_dir = store_path.join("package");
-                                    if package_dir.exists() {
-                                        let cached_pkg = CachedPackage {
-                                            name: pkg_name.clone(),
-                                            version: version.clone(),
-                                            resolved: format!(
-                                                "https://registry.npmjs.org/{}/-/{}-{}.tgz",
-                                                pkg_name, pkg_name, version
-                                            ),
-                                            integrity: format!("sha256-{}", hash),
-                                            store_path,
-                                        };
+                    .filter_map(|package_entry| {
+                        if package_entry.file_type().ok()?.is_dir() {
+                            let package_name = Self::unsanitize_package_name(
+                                &package_entry.file_name().to_string_lossy(),
+                            );
 
-                                        Some((format!("{}@{}", pkg_name, version), cached_pkg))
-                                    } else {
-                                        None
-                                    }
-                                } else {
-                                    None
-                                }
+                            if let Ok(version_entries) = std::fs::read_dir(package_entry.path()) {
+                                let versions: Vec<_> = version_entries
+                                    .flatten()
+                                    .filter_map(|version_entry| {
+                                        if version_entry.file_type().ok()?.is_dir() {
+                                            let version = version_entry
+                                                .file_name()
+                                                .to_string_lossy()
+                                                .to_string();
+                                            let store_path = version_entry.path();
+                                            let package_dir = store_path.join("package");
+
+                                            if package_dir.exists() {
+                                                let cached_pkg = CachedPackage {
+                                                    name: package_name.clone(),
+                                                    version: version.clone(),
+                                                    resolved: format!(
+                                                        "https://registry.npmjs.org/{}/-/{}-{}.tgz",
+                                                        package_name, package_name, version
+                                                    ),
+                                                    integrity: String::new(), // We no longer store hash in path
+                                                    store_path,
+                                                };
+
+                                                Some((
+                                                    format!("{}@{}", package_name, version),
+                                                    cached_pkg,
+                                                ))
+                                            } else {
+                                                None
+                                            }
+                                        } else {
+                                            None
+                                        }
+                                    })
+                                    .collect();
+
+                                Some(versions)
                             } else {
                                 None
                             }
@@ -82,6 +98,7 @@ impl CacheManager {
                             None
                         }
                     })
+                    .flatten()
                     .collect();
 
                 let mut cache = self.index.lock().await;
@@ -173,27 +190,6 @@ impl CacheManager {
         (size, memory_usage)
     }
 
-    fn parse_entry_name_static(name: &str) -> Option<(String, String, String)> {
-        if let Some(at_pos) = name.find('@') {
-            let pkg_part = &name[..at_pos];
-            let rest = &name[at_pos + 1..];
-
-            if let Some(dash_pos) = rest.find('-') {
-                let version = &rest[..dash_pos];
-                let hash = &rest[dash_pos + 1..];
-
-                let pkg_name = if pkg_part.contains("_at_") {
-                    pkg_part.replace("_at_", "@").replace("_slash_", "/")
-                } else {
-                    pkg_part.to_string()
-                };
-
-                return Some((pkg_name, version.to_string(), hash.to_string()));
-            }
-        }
-        None
-    }
-
     pub async fn contains(&self, key: &str) -> bool {
         let cache = self.index.lock().await;
         cache.contains_key(key)
@@ -211,6 +207,10 @@ impl CacheManager {
             .filter(|cached_pkg| cached_pkg.name == package_name)
             .map(|cached_pkg| (cached_pkg.version.clone(), cached_pkg.store_path.clone()))
             .collect()
+    }
+
+    fn unsanitize_package_name(safe_name: &str) -> String {
+        safe_name.replace("_at_", "@").replace("_slash_", "/")
     }
 }
 

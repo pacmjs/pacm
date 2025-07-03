@@ -8,12 +8,28 @@ impl PathResolver {
         store_base: &Path,
         package_name: &str,
         version: &str,
-        hash: &str,
+        _hash: &str, // Hash no longer used in path structure
     ) -> PathBuf {
         let safe_package_name = Self::sanitize_package_name(package_name);
         store_base
             .join("npm")
-            .join(format!("{safe_package_name}@{version}-{hash}"))
+            .join(&safe_package_name)
+            .join(version)
+    }
+
+    #[must_use]
+    pub fn get_package_path(store_base: &Path, package_name: &str, version: &str) -> PathBuf {
+        let safe_package_name = Self::sanitize_package_name(package_name);
+        store_base
+            .join("npm")
+            .join(&safe_package_name)
+            .join(version)
+    }
+
+    #[must_use]
+    pub fn get_package_base_path(store_base: &Path, package_name: &str) -> PathBuf {
+        let safe_package_name = Self::sanitize_package_name(package_name);
+        store_base.join("npm").join(&safe_package_name)
     }
 
     #[must_use]

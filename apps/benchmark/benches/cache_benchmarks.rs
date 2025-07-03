@@ -30,15 +30,11 @@ fn cache_lookup_operations(c: &mut Criterion) {
 
                     let npm_dir = store_path.join("npm");
                     if npm_dir.exists() {
-                        let package_prefix = format!("{safe_name}@{}-", pkg_version);
-                        if let Ok(entries) = std::fs::read_dir(&npm_dir) {
-                            for entry in entries.flatten() {
-                                let dir_name = entry.file_name();
-                                if let Some(name_str) = dir_name.to_str() {
-                                    if name_str.starts_with(&package_prefix) {
-                                        break;
-                                    }
-                                }
+                        let package_dir = npm_dir.join(&safe_name);
+                        if package_dir.exists() {
+                            let version_dir = package_dir.join(pkg_version);
+                            if version_dir.exists() && version_dir.join("package").exists() {
+                                // Found the package
                             }
                         }
                     }
@@ -144,17 +140,13 @@ fn cache_batch_operations(c: &mut Criterion) {
                                     package_name.to_string()
                                 };
 
-                                let package_prefix = format!("{safe_name}@{}-", version);
+                                let package_dir = npm_dir.join(&safe_name);
 
-                                if let Ok(entries) = std::fs::read_dir(&npm_dir) {
-                                    for entry in entries.flatten() {
-                                        let dir_name = entry.file_name();
-                                        if let Some(name_str) = dir_name.to_str() {
-                                            if name_str.starts_with(&package_prefix) {
-                                                found_packages.push(entry.path());
-                                                break;
-                                            }
-                                        }
+                                if package_dir.exists() {
+                                    let version_dir = package_dir.join(version);
+                                    if version_dir.exists() && version_dir.join("package").exists()
+                                    {
+                                        found_packages.push(version_dir);
                                     }
                                 }
                             }

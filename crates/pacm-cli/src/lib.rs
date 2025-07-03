@@ -21,8 +21,18 @@ pub fn run_cli() -> Result<()> {
             }
             Err(_) => {
                 if !potential_command.starts_with('-') && !potential_command.starts_with("--") {
-                    pacm_logger::init_logger(false);
-                    RunHandler::handle_run_script(potential_command)
+                    if potential_command == "help" {
+                        pacm_logger::init_logger(false);
+                        let help_command = if args.len() >= 3 {
+                            Some(args[2].as_str())
+                        } else {
+                            None
+                        };
+                        HelpHandler::handle_help(help_command)
+                    } else {
+                        pacm_logger::init_logger(false);
+                        RunHandler::handle_run_script(potential_command)
+                    }
                 } else {
                     let cli = Cli::parse();
                     pacm_logger::init_logger(false);
@@ -31,9 +41,8 @@ pub fn run_cli() -> Result<()> {
             }
         }
     } else {
-        let cli = Cli::parse();
         pacm_logger::init_logger(false);
-        handle_known_command(&cli.command)
+        HelpHandler::handle_help(None)
     }
 }
 
@@ -78,5 +87,12 @@ fn handle_known_command(command: &Commands) -> Result<()> {
             UpdateHandler::handle_update_packages(packages, *debug)
         }
         Commands::List { tree, depth } => ListHandler::handle_list_dependencies(*tree, *depth),
+        Commands::Clean {
+            cache,
+            modules,
+            yes,
+            debug,
+        } => CleanHandler::handle_clean(*cache, *modules, *yes, *debug),
+        Commands::Help { command } => HelpHandler::handle_help(command.as_deref()),
     }
 }

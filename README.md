@@ -22,11 +22,11 @@ This project is in active development and many features are incomplete or experi
 
 ## ✨ Features
 
-- [ ] **Fast Package Resolution**: Efficient dependency resolution algorithm
+- [X] **Fast Package Resolution**: Efficient dependency resolution algorithm
 - [ ] **Secure Downloads**: Cryptographic verification of packages
-- [ ] **Cross-Platform**: Support for Windows, macOS, and Linux
+- [X] **Cross-Platform**: Support for Windows, macOS, and Linux
 - [ ] **Workspace Support**: Manage multiple packages in a workspace
-- [ ] **Lock File**: Deterministic builds with lock file support
+- [X] **Lock File**: Deterministic builds with lock file support
 - [ ] **Registry Support**: Compatible with multiple package registries
 - [ ] **Local Development**: Support for local package development and linking
 
@@ -35,7 +35,9 @@ This project is in active development and many features are incomplete or experi
 PACM is built as a modular system with the following crates:
 
 - **`pacm-cli`**: Command-line interface
+- **`pacm-constants`**: Shared constants and configuration
 - **`pacm-core`**: Core package management functionality
+- **`pacm-error`**: Error handling and custom error types
 - **`pacm-lock`**: Lock file management
 - **`pacm-logger`**: Logging utilities
 - **`pacm-project`**: Project and workspace management
@@ -101,21 +103,30 @@ cargo check
 - [X] **Lock File Format**: Define and implement lock file specification
 - [X] **Registry Protocol**: Design and implement registry communication
 - [ ] **Workspace Management**: Multi-package workspace support
+- [ ] **Local Development**: Support for local package development and linking
+- [ ] **.npmrc Configuration**: Implement configuration file support
+- [ ] **Environment Management**: Manage runtime environments and dependencies
 
 ### CLI Interface
-- [X] **Install Command**: `pacm install <package>`
-- [X] **Update Command**: `pacm update [package]`
-- [X] **Remove Command**: `pacm remove <package>`
-- [X] **List Command**: `pacm list [--global]`
-- [ ] **Search Command**: `pacm search <query>`
-- [ ] **Info Command**: `pacm info <package>`
-- [ ] **Init Command**: `pacm init [project-name]`
+- [X] **Install Command**: `pacm install [packages] [--dev, --global]`
+  - `--dev`: Install as development dependencies
+  - `--global`: Install globally
+- [X] **Update Command**: `pacm update [packages]`
+- [X] **Remove Command**: `pacm remove [packages]`
+- [X] **List Command**: `pacm list [--global, --all, --dev]`
+  - `--global`: List globally installed packages
+  - `--all`: List all packages in the current project
+  - `--dev`: List development dependencies
+- [X] **Init Command**: `pacm init`
+- [ ] **Outdated Command**: `pacm outdated`
+- [ ] **Config Command**: `pacm config [get|set] <key> [value]`
+- [X] **Help Command**: `pacm help`
 
 ### Quality Assurance
 - [ ] **Unit Tests**: Comprehensive test coverage for all crates
 - [ ] **Integration Tests**: End-to-end testing
 - [ ] **Documentation**: API documentation and user guides
-- [ ] **Benchmarks**: Performance testing and optimization
+- [X] **Benchmarks**: Performance testing and optimization
 - [X] **Error Handling**: Robust error messages and recovery
 
 ### Infrastructure
@@ -131,8 +142,8 @@ cargo check
 - [ ] **Supply Chain Security**: Provenance and attestation
 
 ### Performance
-- [ ] **Parallel Operations**: Concurrent downloads and installations
-- [ ] **Caching Strategy**: Efficient package caching
+- [X] **Parallel Operations**: Concurrent downloads and installations
+- [X] **Caching Strategy**: Efficient package caching
 - [X] **Memory Optimization**: Minimize memory usage
 - [X] **Network Optimization**: Efficient network utilization
 
