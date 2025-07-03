@@ -93,9 +93,9 @@ impl HelpHandler {
                 alias_str.bright_black().bold()
             );
             println!(
-                "  {:width$}  {}",
+                "  {:width$}  # {}",
                 colored_cmd,
-                desc.bright_white(),
+                desc.bright_black().bold(),
                 width = max_cmd_width + (colored_cmd.len() - plain_cmd.len())
             );
         }
@@ -107,9 +107,9 @@ impl HelpHandler {
         let option_cmd = "-V, --version";
         let colored_option_str = format!("{}", option_cmd.bright_cyan().bold());
         println!(
-            "  {}           {}",
+            "  {}           # {}",
             colored_option_str,
-            "Print version".bright_white(),
+            "Print version".bright_black().bold(),
         );
         println!();
 
@@ -129,11 +129,17 @@ impl HelpHandler {
         for (cmd, desc) in examples {
             let parts: Vec<&str> = cmd.split_whitespace().collect();
             let formatted_cmd = if parts.len() > 1 {
-                format!(
-                    "{} {}",
-                    parts[0].bright_cyan().bold(),
-                    parts[1..].join(" ").bright_white()
-                )
+                let mut formatted_parts = vec![parts[0].bright_cyan().bold().to_string()];
+
+                for part in &parts[1..] {
+                    if part.starts_with('-') {
+                        formatted_parts.push(part.bright_black().bold().to_string());
+                    } else {
+                        formatted_parts.push(part.bright_white().to_string());
+                    }
+                }
+
+                formatted_parts.join(" ")
             } else {
                 parts[0].bright_cyan().bold().to_string()
             };
