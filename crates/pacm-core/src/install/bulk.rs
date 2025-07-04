@@ -10,7 +10,7 @@ use pacm_error::{PackageManagerError, Result};
 use pacm_lock::PacmLock;
 use pacm_logger;
 use pacm_project::read_package_json;
-use pacm_resolver::ResolvedPackage;
+use pacm_resolver::{ResolvedPackage, is_platform_compatible};
 
 pub struct BulkInstaller {
     downloader: PackageDownloader,
@@ -159,6 +159,22 @@ impl BulkInstaller {
             .resolve_deps_optimized(deps, use_lockfile, &self.cache, debug)
             .await?;
 
+        let compatible_packages_to_download: Vec<ResolvedPackage> = packages_to_download
+            .iter()
+            .filter(|pkg| {
+                if is_platform_compatible(&pkg.os, &pkg.cpu) {
+                    true
+                } else {
+                    pacm_logger::warn(&format!(
+                        "Package {} (version {}) is not compatible with current platform, skipping",
+                        pkg.name, pkg.version
+                    ));
+                    false
+                }
+            })
+            .cloned()
+            .collect();
+
         if debug {
             pacm_logger::debug(
                 &format!(
@@ -183,11 +199,11 @@ impl BulkInstaller {
             }
         }
 
-        if !packages_to_download.is_empty() {
+        if !compatible_packages_to_download.is_empty() {
             let download_start = std::time::Instant::now();
             let downloaded = self
                 .downloader
-                .download_parallel(&packages_to_download, debug)
+                .download_parallel(&compatible_packages_to_download, debug)
                 .await?;
             stored_packages.extend(downloaded);
 
@@ -197,22 +213,20 @@ impl BulkInstaller {
                     debug,
                 );
             }
-
-            let link_start = std::time::Instant::now();
-            self.link_store_deps(&stored_packages, debug)?;
-
-            if debug {
-                pacm_logger::debug(
-                    &format!("Store linking completed in {:?}", link_start.elapsed()),
-                    debug,
-                );
-            }
-
-            self.run_post_install(&stored_packages, &packages_to_download, debug)?;
         }
 
         let final_start = std::time::Instant::now();
-        self.link_to_project(path, &stored_packages, &direct_names, debug)?;
+        self.link_all_to_project(path, &stored_packages, debug)?;
+
+        if !compatible_packages_to_download.is_empty() {
+            self.run_post_install_in_project(
+                path,
+                &stored_packages,
+                &compatible_packages_to_download,
+                debug,
+            )?;
+        }
+
         self.update_lock(path, &stored_packages, &direct_names)?;
 
         if debug {
@@ -222,7 +236,7 @@ impl BulkInstaller {
             );
         }
 
-        let msg = self.build_finish_msg(&cached_packages, &packages_to_download);
+        let msg = self.build_finish_msg(&cached_packages, &compatible_packages_to_download);
         pacm_logger::finish(&msg);
         Ok(())
     }
@@ -245,7 +259,10 @@ impl BulkInstaller {
         let stored_packages = self.build_stored_map(&cached_packages, &resolved_map);
 
         self.link_cached_deps(&cached_packages, &stored_packages, debug)?;
-        self.link_to_project(path, &stored_packages, &direct_names, debug)?;
+        self.link_all_to_project(path, &stored_packages, debug)?;
+
+        super::utils::InstallUtils::run_postinstall_in_project(path, &stored_packages, debug)?;
+
         self.update_lock(path, &stored_packages, &direct_names)?;
 
         pacm_logger::finish(&format!(
@@ -283,6 +300,9 @@ impl BulkInstaller {
                     resolved: cached_pkg.resolved.clone(),
                     integrity: cached_pkg.integrity.clone(),
                     dependencies: HashMap::new(),
+                    optional_dependencies: HashMap::new(),
+                    os: None,
+                    cpu: None,
                 });
             stored.insert(key, (resolved_pkg, cached_pkg.store_path.clone()));
         }
@@ -299,15 +319,13 @@ impl BulkInstaller {
         self.linker.verify_cached_deps(cached, stored, debug)
     }
 
-    fn link_to_project(
+    fn link_all_to_project(
         &self,
         path: &PathBuf,
         stored: &HashMap<String, (ResolvedPackage, PathBuf)>,
-        direct_names: &HashSet<String>,
         debug: bool,
     ) -> Result<()> {
-        self.linker
-            .link_direct_to_project(path, stored, direct_names, debug)
+        self.linker.link_all_to_project(path, stored, debug)
     }
 
     fn update_lock(
@@ -323,10 +341,10 @@ impl BulkInstaller {
 
     fn link_store_deps(
         &self,
-        stored: &HashMap<String, (ResolvedPackage, PathBuf)>,
-        debug: bool,
+        _stored: &HashMap<String, (ResolvedPackage, PathBuf)>,
+        _debug: bool,
     ) -> Result<()> {
-        self.linker.link_deps_to_store(stored, debug)
+        Ok(())
     }
 
     fn run_post_install(
@@ -346,6 +364,26 @@ impl BulkInstaller {
             .collect();
 
         self.run_postinstall(&new_packages, debug)
+    }
+
+    fn run_post_install_in_project(
+        &self,
+        project_path: &PathBuf,
+        stored: &HashMap<String, (ResolvedPackage, PathBuf)>,
+        downloaded: &[ResolvedPackage],
+        debug: bool,
+    ) -> Result<()> {
+        let new_packages: HashMap<String, (ResolvedPackage, PathBuf)> = stored
+            .iter()
+            .filter(|(key, _)| {
+                downloaded
+                    .iter()
+                    .any(|pkg| key.starts_with(&format!("{}@", pkg.name)))
+            })
+            .map(|(k, v)| (k.clone(), v.clone()))
+            .collect();
+
+        super::utils::InstallUtils::run_postinstall_in_project(project_path, &new_packages, debug)
     }
 
     fn run_postinstall(

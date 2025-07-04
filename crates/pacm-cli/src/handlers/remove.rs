@@ -7,20 +7,33 @@ pub struct RemoveHandler;
 
 impl RemoveHandler {
     pub fn handle_remove_packages(packages: &[String], dev: bool, debug: bool) -> Result<()> {
-        for package in packages {
-            Self::print_remove_header(package);
-            pacm_core::remove_dep(".", package, dev, debug)?;
+        if packages.is_empty() {
+            return Ok(());
         }
+
+        Self::print_remove_header(packages);
+
+        pacm_core::remove_multiple_deps(".", packages, dev, debug)?;
+
         Ok(())
     }
 
-    fn print_remove_header(package: &str) {
-        println!(
-            "{} {} {}",
-            "pacm".bright_cyan().bold(),
-            "remove".bright_white(),
-            package.bright_white()
-        );
+    fn print_remove_header(packages: &[String]) {
+        if packages.len() == 1 {
+            println!(
+                "{} {} {}",
+                "pacm".bright_cyan().bold(),
+                "remove".bright_white(),
+                packages[0].bright_white()
+            );
+        } else {
+            println!(
+                "{} {} {}",
+                "pacm".bright_cyan().bold(),
+                "remove".bright_white(),
+                packages.join(" ").bright_white()
+            );
+        }
         println!();
     }
 }

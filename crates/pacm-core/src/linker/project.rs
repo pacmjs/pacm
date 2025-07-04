@@ -56,6 +56,62 @@ impl ProjectLinker {
         Ok(())
     }
 
+    pub fn link_all_deps(
+        project_dir: &Path,
+        stored_packages: &HashMap<String, (ResolvedPackage, PathBuf)>,
+        debug: bool,
+    ) -> Result<()> {
+        pacm_logger::status("Linking all packages to project (flat node_modules)...");
+
+        let project_node_modules = project_dir.join("node_modules");
+
+        let results: Vec<_> = stored_packages
+            .par_iter()
+            .map(|(_, (pkg, store_path))| {
+                if debug {
+                    pacm_logger::debug(
+                        &format!("Linking {}@{} to project", pkg.name, pkg.version),
+                        debug,
+                    );
+                }
+
+                if let Err(e) = link_package(&project_node_modules, &pkg.name, store_path) {
+                    pacm_logger::error(&format!(
+                        "Failed to link {}@{}: {}",
+                        pkg.name, pkg.version, e
+                    ));
+                    if debug {
+                        pacm_logger::debug(
+                            &format!("link_package failed for {}@{}", pkg.name, pkg.version),
+                            debug,
+                        );
+                    }
+                    return Err(PackageManagerError::LinkingFailed(
+                        pkg.name.clone(),
+                        e.to_string(),
+                    ));
+                }
+                Ok(())
+            })
+            .collect();
+
+        for result in results {
+            result?;
+        }
+
+        if debug {
+            pacm_logger::debug(
+                &format!(
+                    "Successfully linked {} packages to project",
+                    stored_packages.len()
+                ),
+                debug,
+            );
+        }
+
+        Ok(())
+    }
+
     pub fn link_single_pkg(
         project_dir: &Path,
         package_name: &str,

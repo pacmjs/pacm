@@ -42,6 +42,15 @@ impl PackageLinker {
         ProjectLinker::link_direct_deps(project_dir, stored_packages, direct_package_names, debug)
     }
 
+    pub fn link_all_to_project(
+        &self,
+        project_dir: &Path,
+        stored_packages: &HashMap<String, (ResolvedPackage, PathBuf)>,
+        debug: bool,
+    ) -> Result<()> {
+        ProjectLinker::link_all_deps(project_dir, stored_packages, debug)
+    }
+
     pub fn link_single_to_project(
         &self,
         project_dir: &Path,

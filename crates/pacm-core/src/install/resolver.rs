@@ -102,6 +102,9 @@ impl DependencyResolver {
                     resolved: cached.resolved.clone(),
                     integrity: cached.integrity.clone(),
                     dependencies: HashMap::new(), // Will be populated if needed
+                    optional_dependencies: HashMap::new(),
+                    os: None,
+                    cpu: None,
                 };
                 all_resolved.insert(key, resolved_pkg);
             } else {

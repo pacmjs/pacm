@@ -45,6 +45,9 @@ impl DependencyOptimizer {
                                 ),
                                 integrity: String::new(),
                                 dependencies: HashMap::new(),
+                                optional_dependencies: HashMap::new(),
+                                os: None,
+                                cpu: None,
                             };
 
                             let mut cache_write = cache.write().await;

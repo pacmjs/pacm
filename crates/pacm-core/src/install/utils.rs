@@ -174,6 +174,34 @@ impl InstallUtils {
         Ok(())
     }
 
+    pub fn run_postinstall_in_project(
+        project_dir: &PathBuf,
+        packages: &HashMap<String, (ResolvedPackage, PathBuf)>,
+        debug: bool,
+    ) -> Result<()> {
+        if packages.is_empty() {
+            return Ok(());
+        }
+
+        if debug {
+            pacm_logger::debug(
+                &format!(
+                    "Running postinstall scripts for {} packages in project node_modules",
+                    packages.len()
+                ),
+                debug,
+            );
+        }
+
+        let project_node_modules = project_dir.join("node_modules");
+
+        for (_key, (pkg, _store_path)) in packages {
+            Self::run_single_postinstall_in_project(&pkg.name, &project_node_modules, debug)?;
+        }
+
+        Ok(())
+    }
+
     fn run_single_postinstall(package_name: &str, store_path: &PathBuf, debug: bool) -> Result<()> {
         let package_dir = store_path.join("package");
         let package_json_path = package_dir.join("package.json");
@@ -190,6 +218,12 @@ impl InstallUtils {
 
         if let Some(scripts) = package_json.get("scripts").and_then(|s| s.as_object()) {
             if let Some(postinstall) = scripts.get("postinstall").and_then(|s| s.as_str()) {
+                pacm_logger::status(&format!(
+                    "Running postinstall for {} in directory: {}",
+                    package_name,
+                    package_dir.display()
+                ));
+
                 if debug {
                     pacm_logger::debug(
                         &format!("Running postinstall for {}: {}", package_name, postinstall),
@@ -234,6 +268,238 @@ impl InstallUtils {
                         ));
                     }
                 }
+            }
+        }
+
+        Ok(())
+    }
+
+    fn run_single_postinstall_in_project(
+        package_name: &str,
+        project_node_modules: &PathBuf,
+        debug: bool,
+    ) -> Result<()> {
+        let package_dir = if package_name.starts_with('@') {
+            if let Some(slash_pos) = package_name.find('/') {
+                let scope = &package_name[..slash_pos]; // @types
+                let name = &package_name[slash_pos + 1..]; // node
+                let scope_dir = project_node_modules.join(scope);
+                scope_dir.join(name)
+            } else {
+                project_node_modules.join(package_name)
+            }
+        } else {
+            project_node_modules.join(package_name)
+        };
+
+        let package_json_path = package_dir.join("package.json");
+
+        if !package_json_path.exists() {
+            if debug {
+                pacm_logger::debug(
+                    &format!(
+                        "No package.json found for {} in project node_modules",
+                        package_name
+                    ),
+                    debug,
+                );
+            }
+            return Ok(());
+        }
+
+        let content = std::fs::read_to_string(&package_json_path)
+            .map_err(|e| PackageManagerError::PackageJsonError(e.to_string()))?;
+
+        let package_json: serde_json::Value = serde_json::from_str(&content)
+            .map_err(|e| PackageManagerError::PackageJsonError(e.to_string()))?;
+
+        if let Some(scripts) = package_json.get("scripts").and_then(|s| s.as_object()) {
+            if let Some(postinstall) = scripts.get("postinstall").and_then(|s| s.as_str()) {
+                pacm_logger::status(&format!(
+                    "Running postinstall for {} in project directory: {}",
+                    package_name,
+                    package_dir.display()
+                ));
+
+                if debug {
+                    pacm_logger::debug(
+                        &format!(
+                            "Running postinstall for {} in project: {}",
+                            package_name, postinstall
+                        ),
+                        debug,
+                    );
+                }
+
+                let project_root = project_node_modules
+                    .parent()
+                    .unwrap_or(project_node_modules);
+
+                let temp_package_dir = project_root
+                    .join(".pacm_temp")
+                    .join(package_name.replace("/", "_"));
+
+                if temp_package_dir.exists() {
+                    let _ = std::fs::remove_dir_all(&temp_package_dir);
+                }
+
+                if let Err(e) = std::fs::create_dir_all(&temp_package_dir) {
+                    pacm_logger::warn(&format!(
+                        "Failed to create temp directory for {}: {}",
+                        package_name, e
+                    ));
+                    return Ok(());
+                }
+
+                let store_package_dir = package_dir.read_link().unwrap_or(package_dir.clone());
+                if let Err(e) = Self::copy_dir_contents(&store_package_dir, &temp_package_dir) {
+                    pacm_logger::warn(&format!(
+                        "Failed to copy package contents for {}: {}",
+                        package_name, e
+                    ));
+                    let _ = std::fs::remove_dir_all(&temp_package_dir);
+                    return Ok(());
+                }
+
+                let temp_node_modules = temp_package_dir.join("node_modules");
+                if let Err(e) = std::fs::create_dir_all(&temp_node_modules) {
+                    pacm_logger::warn(&format!(
+                        "Failed to create temp node_modules for {}: {}",
+                        package_name, e
+                    ));
+                    let _ = std::fs::remove_dir_all(&temp_package_dir);
+                    return Ok(());
+                }
+
+                if let Ok(entries) = std::fs::read_dir(project_node_modules) {
+                    for entry in entries.flatten() {
+                        let entry_name = entry.file_name();
+                        let entry_name_str = entry_name.to_string_lossy();
+                        let temp_link = temp_node_modules.join(&entry_name);
+
+                        if temp_link.exists() || entry_name_str == package_name {
+                            continue;
+                        }
+
+                        #[cfg(target_family = "windows")]
+                        {
+                            if entry.path().is_dir() {
+                                let _ = std::os::windows::fs::symlink_dir(entry.path(), temp_link);
+                            } else {
+                                let _ = std::os::windows::fs::symlink_file(entry.path(), temp_link);
+                            }
+                        }
+
+                        #[cfg(target_family = "unix")]
+                        {
+                            let _ = std::os::unix::fs::symlink(entry.path(), temp_link);
+                        }
+                    }
+                }
+
+                let self_link = temp_node_modules.join(package_name);
+                if !self_link.exists() {
+                    #[cfg(target_family = "windows")]
+                    {
+                        let _ = std::os::windows::fs::symlink_dir(&temp_package_dir, self_link);
+                    }
+
+                    #[cfg(target_family = "unix")]
+                    {
+                        let _ = std::os::unix::fs::symlink(&temp_package_dir, self_link);
+                    }
+                }
+
+                let mut cmd = if cfg!(target_os = "windows") {
+                    Command::new("cmd")
+                } else {
+                    Command::new("sh")
+                };
+
+                if cfg!(target_os = "windows") {
+                    cmd.args(["/C", postinstall]);
+                } else {
+                    cmd.args(["-c", postinstall]);
+                }
+
+                cmd.current_dir(&temp_package_dir);
+
+                cmd.env("NODE_PATH", temp_node_modules.to_string_lossy().as_ref());
+                cmd.env("npm_package_name", package_name);
+                cmd.env("INIT_CWD", project_root.to_string_lossy().as_ref());
+
+                if let Some(version) = package_json.get("version").and_then(|v| v.as_str()) {
+                    cmd.env("npm_package_version", version);
+                }
+
+                if let Some(path) = std::env::var_os("PATH") {
+                    let mut paths = std::env::split_paths(&path).collect::<Vec<_>>();
+                    paths.insert(0, project_node_modules.join(".bin"));
+                    let new_path = std::env::join_paths(paths).unwrap();
+                    cmd.env("PATH", new_path);
+                }
+
+                let status = cmd.status();
+
+                let _ = std::fs::remove_dir_all(&temp_package_dir);
+
+                match status {
+                    Ok(exit_status) => {
+                        if !exit_status.success() {
+                            pacm_logger::warn(&format!(
+                                "Postinstall script failed for {} with exit code: {}",
+                                package_name,
+                                exit_status.code().unwrap_or(-1)
+                            ));
+                        } else if debug {
+                            pacm_logger::debug(
+                                &format!(
+                                    "Postinstall script completed successfully for {} in project",
+                                    package_name
+                                ),
+                                debug,
+                            );
+                        }
+                    }
+                    Err(e) => {
+                        pacm_logger::warn(&format!(
+                            "Failed to execute postinstall script for {} in project: {}",
+                            package_name, e
+                        ));
+                    }
+                }
+            }
+        } else if debug {
+            pacm_logger::debug(
+                &format!("No postinstall script found for {}", package_name),
+                debug,
+            );
+        }
+
+        Ok(())
+    }
+
+    fn copy_dir_contents(src: &PathBuf, dst: &PathBuf) -> std::io::Result<()> {
+        if !src.is_dir() {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                "Source is not a directory",
+            ));
+        }
+
+        for entry in std::fs::read_dir(src)? {
+            let entry = entry?;
+            let src_path = entry.path();
+            let dst_path = dst.join(entry.file_name());
+
+            if src_path.is_dir() {
+                std::fs::create_dir_all(&dst_path)?;
+                Self::copy_dir_contents(&src_path, &dst_path)?;
+            } else {
+                if let Some(parent) = dst_path.parent() {
+                    std::fs::create_dir_all(parent)?;
+                }
+                std::fs::copy(&src_path, &dst_path)?;
             }
         }
 

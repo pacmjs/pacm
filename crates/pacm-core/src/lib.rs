@@ -123,6 +123,18 @@ pub fn remove_dep(
         .map_err(|e| anyhow::anyhow!(e))
 }
 
+pub fn remove_multiple_deps(
+    project_dir: &str,
+    names: &[String],
+    dev_only: bool,
+    debug: bool,
+) -> anyhow::Result<()> {
+    let manager = RemoveManager;
+    manager
+        .remove_multiple_deps(project_dir, names, dev_only, debug)
+        .map_err(|e| anyhow::anyhow!(e))
+}
+
 pub fn update_deps(project_dir: &str, packages: &[String], debug: bool) -> anyhow::Result<()> {
     let manager = UpdateManager::new();
     manager

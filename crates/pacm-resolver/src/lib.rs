@@ -2,10 +2,12 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 pub mod comparators;
+pub mod platform;
 pub mod resolver;
 pub mod semver;
 pub mod version_utils;
 
+pub use platform::{get_current_cpu, get_current_os, is_platform_compatible};
 pub use resolver::DependencyResolver;
 
 #[derive(Clone, Debug)]
@@ -15,6 +17,9 @@ pub struct ResolvedPackage {
     pub resolved: String,
     pub integrity: String,
     pub dependencies: HashMap<String, String>, // Name => version range
+    pub optional_dependencies: HashMap<String, String>, // Name => version range
+    pub os: Option<Vec<String>>,               // OS requirements (e.g., ["win32", "darwin"])
+    pub cpu: Option<Vec<String>>,              // CPU requirements (e.g., ["x64", "arm64"])
 }
 
 pub fn resolve_full_tree(
