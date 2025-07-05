@@ -111,10 +111,10 @@ impl DependencyResolver {
                     for pkg in &sub {
                         if !is_platform_compatible(&pkg.os, &pkg.cpu) {
                             all_compatible = false;
-                            pacm_logger::warn(&format!(
-                                "Optional dependency {} is not compatible with current platform, skipping",
-                                pkg.name
-                            ));
+                            // pacm_logger::warn(&format!(
+                            //     "Optional dependency {} is not compatible with current platform, skipping",
+                            //     pkg.name
+                            // ));
                             break;
                         }
                     }
@@ -316,10 +316,10 @@ impl DependencyResolver {
                             if is_platform_compatible(&pkg.os, &pkg.cpu) {
                                 compatible_packages.push(pkg);
                             } else {
-                                pacm_logger::warn(&format!(
-                                    "Optional dependency {} (version {}) is not compatible with current platform, skipping",
-                                    pkg.name, pkg.version
-                                ));
+                                // pacm_logger::warn(&format!(
+                                //     "Optional dependency {} (version {}) is not compatible with current platform, skipping",
+                                //     pkg.name, pkg.version
+                                // ));
                             }
                         }
 

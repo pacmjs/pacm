@@ -70,6 +70,18 @@ pub enum Commands {
         /// Remove from devDependencies only
         #[arg(short = 'D', long = "dev")]
         dev: bool,
+        /// Only remove direct packages, not their transitive dependencies
+        #[arg(
+            long = "direct-only",
+            help = "Only remove the specified packages without removing unused transitive dependencies"
+        )]
+        direct_only: bool,
+        /// Show what would be removed without actually removing it
+        #[arg(
+            long = "dry-run",
+            help = "Show which packages and transitive dependencies would be removed without actually removing them"
+        )]
+        dry_run: bool,
         /// Enable debug mode for verbose output
         #[arg(long)]
         debug: bool,

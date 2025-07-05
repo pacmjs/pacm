@@ -2,6 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 
 use super::cache::CacheManager;
+use super::fast_path::{FastPathAnalyzer, InstallationPath};
 use pacm_error::{PackageManagerError, Result};
 use pacm_logger;
 use pacm_project::DependencyType;
@@ -18,15 +19,20 @@ pub struct SingleInstaller {
     linker: PackageLinker,
     cache: CacheManager,
     resolver: DependencyResolver,
+    fast_path_analyzer: FastPathAnalyzer,
 }
 
 impl SingleInstaller {
     pub fn new() -> Self {
+        let cache = CacheManager::new();
+        let fast_path_analyzer = FastPathAnalyzer::new(cache.clone());
+
         Self {
             downloader: PackageDownloader::new(),
             linker: PackageLinker {},
-            cache: CacheManager::new(),
+            cache,
             resolver: DependencyResolver::new(),
+            fast_path_analyzer,
         }
     }
 
@@ -93,8 +99,6 @@ impl SingleInstaller {
         _force: bool,
         debug: bool,
     ) -> Result<()> {
-        pacm_logger::status(&format!("Installing {}@{}", name, version_range));
-
         let path = PathBuf::from(project_dir);
 
         if self.check_existing(
@@ -109,24 +113,21 @@ impl SingleInstaller {
             return Ok(());
         }
 
-        if debug {
-            pacm_logger::debug("Checking store for instant installation...", debug);
-        }
+        self.cache.build_index(debug).await?;
 
-        if let Some(cached_package) = self.fast_store_check(name, version_range, debug).await? {
-            if debug {
-                pacm_logger::debug(
-                    &format!(
-                        "Found {}@{} in store - using fast path",
-                        name, version_range
-                    ),
-                    debug,
-                );
-            }
-            return self
-                .fast_link_only(
+        let install_path = self
+            .fast_path_analyzer
+            .analyze_single_package(name, version_range, debug)
+            .await?;
+
+        match install_path {
+            InstallationPath::InstantLink {
+                cached_packages,
+                skip_dependency_check: _,
+            } => {
+                self.install_instant_link(
                     &path,
-                    &cached_package,
+                    &cached_packages[0],
                     name,
                     version_range,
                     dep_type,
@@ -134,86 +135,304 @@ impl SingleInstaller {
                     no_save,
                     debug,
                 )
-                .await;
-        }
-
-        if debug {
-            pacm_logger::debug("Package not in store - using full resolution path", debug);
-        } else {
-            pacm_logger::status(&format!("Analyzing package requirements for {}...", name));
-        }
-
-        let deps = vec![(name.to_string(), version_range.to_string())];
-        self.cache.build_index(debug).await?;
-
-        let (cached_packages, packages_to_download, mut direct_names, resolved_map) = self
-            .resolver
-            .resolve_deps_optimized(&deps, false, &self.cache, debug)
-            .await?;
-
-        let compatible_packages_to_download: Vec<ResolvedPackage> = packages_to_download
-            .iter()
-            .filter(|pkg| {
-                if is_platform_compatible(&pkg.os, &pkg.cpu) {
-                    true
-                } else {
-                    pacm_logger::warn(&format!(
-                        "Package {} (version {}) is not compatible with current platform, skipping",
-                        pkg.name, pkg.version
-                    ));
-                    false
-                }
-            })
-            .cloned()
-            .collect();
-
-        direct_names.clear();
-        direct_names.insert(name.to_string());
-
-        let mut stored_packages = self.build_stored_map(&cached_packages, &resolved_map);
-
-        if compatible_packages_to_download.is_empty() && !cached_packages.is_empty() {
-            if debug {
-                pacm_logger::debug(
-                    &format!("All {} packages found in cache", cached_packages.len()),
-                    debug,
-                );
+                .await
             }
-
-            self.link_cached_deps(&cached_packages, &stored_packages, debug)?;
-            self.link_all_to_project(&path, &stored_packages, debug)?;
-
-            super::utils::InstallUtils::run_postinstall_in_project(&path, &stored_packages, debug)?;
-
-            if !no_save {
-                self.update_package_json(
+            InstallationPath::CachedWithDeps {
+                main_package,
+                need_dep_resolution: _,
+            } => {
+                self.install_cached_with_minimal_deps(
+                    &path,
+                    &main_package,
+                    name,
+                    version_range,
+                    dep_type,
+                    save_exact,
+                    no_save,
+                    debug,
+                )
+                .await
+            }
+            InstallationPath::OptimizedDownload {
+                can_skip_transitive,
+                estimated_complexity: _,
+            } => {
+                if can_skip_transitive {
+                    self.install_simple_download(
+                        &path,
+                        name,
+                        version_range,
+                        dep_type,
+                        save_exact,
+                        no_save,
+                        debug,
+                    )
+                    .await
+                } else {
+                    self.install_optimized_path(
+                        &path,
+                        name,
+                        version_range,
+                        dep_type,
+                        save_exact,
+                        no_save,
+                        debug,
+                    )
+                    .await
+                }
+            }
+            InstallationPath::FullResolution => {
+                self.install_full_path(
                     &path,
                     name,
                     version_range,
                     dep_type,
                     save_exact,
-                    &stored_packages,
-                )?;
-            }
-
-            self.update_lock(&path, &stored_packages, &direct_names)?;
-
-            let msg = if cached_packages.len() == 1 {
-                format!("{} linked from cache", name)
-            } else {
-                format!(
-                    "{} and {} dependencies linked from cache",
-                    name,
-                    cached_packages.len() - 1
+                    no_save,
+                    debug,
                 )
-            };
-            pacm_logger::finish(&msg);
-            return Ok(());
+                .await
+            }
+        }
+    }
+
+    async fn install_instant_link(
+        &self,
+        project_path: &PathBuf,
+        cached_package: &CachedPackage,
+        name: &str,
+        _version_range: &str,
+        dep_type: DependencyType,
+        save_exact: bool,
+        no_save: bool,
+        debug: bool,
+    ) -> Result<()> {
+        if debug {
+            pacm_logger::debug(&format!("Using instant link for {}", name), debug);
+        } else {
+            pacm_logger::status(&format!("Linking {} from cache...", name));
         }
 
-        if !cached_packages.is_empty() {
-            self.link_cached_deps(&cached_packages, &stored_packages, debug)?;
+        let mut stored_packages = HashMap::new();
+        let key = format!("{}@{}", cached_package.name, cached_package.version);
+        stored_packages.insert(
+            key,
+            (
+                ResolvedPackage {
+                    name: cached_package.name.clone(),
+                    version: cached_package.version.clone(),
+                    resolved: cached_package.resolved.clone(),
+                    integrity: cached_package.integrity.clone(),
+                    dependencies: HashMap::new(),
+                    optional_dependencies: HashMap::new(),
+                    os: None,
+                    cpu: None,
+                },
+                cached_package.store_path.clone(),
+            ),
+        );
+
+        self.link_all_to_project(project_path, &stored_packages, debug)?;
+
+        if !no_save {
+            self.update_package_json(
+                project_path,
+                name,
+                &cached_package.version,
+                dep_type,
+                save_exact,
+                &stored_packages,
+            )?;
         }
+
+        let direct_names = [name.to_string()].iter().cloned().collect();
+        self.update_lock(project_path, &stored_packages, &direct_names)?;
+
+        pacm_logger::finish(&format!("{} linked instantly from cache", name));
+        Ok(())
+    }
+
+    async fn install_cached_with_minimal_deps(
+        &self,
+        project_path: &PathBuf,
+        main_package: &CachedPackage,
+        name: &str,
+        version_range: &str,
+        dep_type: DependencyType,
+        save_exact: bool,
+        no_save: bool,
+        debug: bool,
+    ) -> Result<()> {
+        if debug {
+            pacm_logger::debug(
+                &format!("Using cached path with minimal deps for {}", name),
+                debug,
+            );
+        } else {
+            pacm_logger::status(&format!("Analyzing minimal requirements for {}...", name));
+        }
+
+        let deps = vec![(name.to_string(), version_range.to_string())];
+
+        let (cached_packages, packages_to_download, direct_names, all_resolved_packages) = self
+            .resolver
+            .resolve_deps_fast(&deps, &self.cache, debug)
+            .await?;
+
+        let mut stored_packages = self.build_stored_map(&cached_packages, &all_resolved_packages);
+
+        if !packages_to_download.is_empty() {
+            let compatible_packages: Vec<_> = packages_to_download
+                .into_iter()
+                .filter(|pkg| is_platform_compatible(&pkg.os, &pkg.cpu))
+                .collect();
+
+            if !compatible_packages.is_empty() {
+                let downloaded = self
+                    .downloader
+                    .download_parallel(&compatible_packages, debug)
+                    .await?;
+                stored_packages.extend(downloaded);
+            }
+        }
+
+        self.link_all_to_project(project_path, &stored_packages, debug)?;
+
+        if !no_save {
+            self.update_package_json(
+                project_path,
+                name,
+                &main_package.version,
+                dep_type,
+                save_exact,
+                &stored_packages,
+            )?;
+        }
+
+        self.update_lock(project_path, &stored_packages, &direct_names)?;
+
+        let msg = if cached_packages.len() == 1 {
+            format!("{} linked from cache", name)
+        } else {
+            format!(
+                "{} with {} dependencies linked",
+                name,
+                cached_packages.len() - 1
+            )
+        };
+        pacm_logger::finish(&msg);
+        Ok(())
+    }
+
+    async fn install_simple_download(
+        &self,
+        project_path: &PathBuf,
+        name: &str,
+        version_range: &str,
+        dep_type: DependencyType,
+        save_exact: bool,
+        no_save: bool,
+        debug: bool,
+    ) -> Result<()> {
+        if debug {
+            pacm_logger::debug(&format!("Using simple download path for {}", name), debug);
+        } else {
+            pacm_logger::status(&format!("Downloading {}...", name));
+        }
+
+        let mut seen = HashSet::new();
+        let resolved_packages = pacm_resolver::resolve_full_tree_async(
+            self.resolver.get_client(),
+            name,
+            version_range,
+            &mut seen,
+        )
+        .await
+        .map_err(|e| {
+            PackageManagerError::VersionResolutionFailed(
+                name.to_string(),
+                format!("Failed to resolve {}: {}", name, e),
+            )
+        })?;
+
+        let compatible_packages: Vec<_> = resolved_packages
+            .into_iter()
+            .filter(|pkg| is_platform_compatible(&pkg.os, &pkg.cpu))
+            .collect();
+
+        if compatible_packages.is_empty() {
+            return Err(PackageManagerError::NoCompatibleVersions(name.to_string()));
+        }
+
+        let downloaded = self
+            .downloader
+            .download_parallel(&compatible_packages, debug)
+            .await?;
+
+        self.link_all_to_project(project_path, &downloaded, debug)?;
+
+        if !no_save {
+            let main_package = compatible_packages
+                .iter()
+                .find(|pkg| pkg.name == name)
+                .ok_or_else(|| PackageManagerError::PackageNotFound(name.to_string()))?;
+
+            self.update_package_json(
+                project_path,
+                name,
+                &main_package.version,
+                dep_type,
+                save_exact,
+                &downloaded,
+            )?;
+        }
+
+        let direct_names = [name.to_string()].iter().cloned().collect();
+        self.update_lock(project_path, &downloaded, &direct_names)?;
+
+        let msg = if compatible_packages.len() == 1 {
+            format!("{} downloaded and installed", name)
+        } else {
+            format!(
+                "{} with {} dependencies installed",
+                name,
+                compatible_packages.len() - 1
+            )
+        };
+        pacm_logger::finish(&msg);
+        Ok(())
+    }
+
+    async fn install_optimized_path(
+        &self,
+        project_path: &PathBuf,
+        name: &str,
+        version_range: &str,
+        dep_type: DependencyType,
+        save_exact: bool,
+        no_save: bool,
+        debug: bool,
+    ) -> Result<()> {
+        if debug {
+            pacm_logger::debug(&format!("Using optimized path for {}", name), debug);
+        } else {
+            pacm_logger::status(&format!("Analyzing requirements for {}...", name));
+        }
+
+        let deps = vec![(name.to_string(), version_range.to_string())];
+
+        let (cached_packages, packages_to_download, direct_names, all_resolved_packages) = self
+            .resolver
+            .resolve_deps_fast(&deps, &self.cache, debug)
+            .await?;
+
+        let compatible_packages_to_download: Vec<ResolvedPackage> = packages_to_download
+            .iter()
+            .filter(|pkg| is_platform_compatible(&pkg.os, &pkg.cpu))
+            .cloned()
+            .collect();
+
+        let mut stored_packages = self.build_stored_map(&cached_packages, &all_resolved_packages);
 
         if !compatible_packages_to_download.is_empty() {
             let downloaded = self
@@ -221,26 +440,30 @@ impl SingleInstaller {
                 .download_parallel(&compatible_packages_to_download, debug)
                 .await?;
             stored_packages.extend(downloaded);
-
-            self.run_post_install(&stored_packages, &compatible_packages_to_download, debug)?;
         }
 
-        self.link_all_to_project(&path, &stored_packages, debug)?;
+        self.link_all_to_project(project_path, &stored_packages, debug)?;
 
         if !no_save {
+            let main_package_version = all_resolved_packages
+                .values()
+                .find(|pkg| pkg.name == name)
+                .map(|pkg| &pkg.version)
+                .ok_or_else(|| PackageManagerError::PackageNotFound(name.to_string()))?;
+
             self.update_package_json(
-                &path,
+                project_path,
                 name,
-                version_range,
+                main_package_version,
                 dep_type,
                 save_exact,
                 &stored_packages,
             )?;
         }
 
-        self.update_lock(&path, &stored_packages, &direct_names)?;
+        self.update_lock(project_path, &stored_packages, &direct_names)?;
 
-        let msg = self.build_finish_msg(name, &cached_packages, &packages_to_download);
+        let msg = self.build_finish_msg(name, &cached_packages, &compatible_packages_to_download);
         pacm_logger::finish(&msg);
         Ok(())
     }
@@ -368,11 +591,13 @@ impl SingleInstaller {
                 .download_parallel(&compatible_packages_to_download, debug)
                 .await?;
             stored_packages.extend(downloaded);
-
-            self.run_post_install(&stored_packages, &compatible_packages_to_download, debug)?;
         }
 
         self.link_all_to_project(&path, &stored_packages, debug)?;
+
+        if !stored_packages.is_empty() {
+            super::utils::InstallUtils::run_postinstall_in_project(&path, &stored_packages, debug)?;
+        }
 
         if !no_save {
             self.update_package_json_batch(
@@ -407,24 +632,33 @@ impl SingleInstaller {
         debug: bool,
     ) -> Result<()> {
         if debug {
-            pacm_logger::debug("Using optimized fast-cached installation path", debug);
+            pacm_logger::debug(
+                "Using optimized fast-cached installation path with transitive dependencies",
+                debug,
+            );
         }
 
-        let cached_packages = self
-            .cache
-            .get_batch_direct(packages_to_install)
-            .await
-            .into_iter()
-            .filter_map(|cached_opt| cached_opt)
-            .collect::<Vec<_>>();
+        let (_, all_resolved) = self
+            .resolver
+            .resolve_all_parallel(packages_to_install, false, debug)
+            .await?;
 
-        if cached_packages.len() != packages_to_install.len() {
+        let (cached_packages, packages_to_download) = self
+            .resolver
+            .separate_cached_fast(&all_resolved, &self.cache, debug)
+            .await?;
+
+        if !packages_to_download.is_empty() {
             if debug {
                 pacm_logger::debug(
-                    "Cache miss detected, falling back to full resolution",
+                    &format!(
+                        "Some transitive dependencies not cached ({}), falling back to full resolution",
+                        packages_to_download.len()
+                    ),
                     debug,
                 );
             }
+
             return self
                 .install_batch_full_resolution(
                     path,
@@ -437,36 +671,26 @@ impl SingleInstaller {
                 .await;
         }
 
-        let mut stored_packages = HashMap::new();
-        let mut direct_names = HashSet::new();
-
-        for cached_pkg in &cached_packages {
-            let key = format!("{}@{}", cached_pkg.name, cached_pkg.version);
-            let resolved_pkg = ResolvedPackage {
-                name: cached_pkg.name.clone(),
-                version: cached_pkg.version.clone(),
-                resolved: cached_pkg.resolved.clone(),
-                integrity: cached_pkg.integrity.clone(),
-                dependencies: HashMap::new(), // We don't need dependencies for direct packages in fast path
-                optional_dependencies: HashMap::new(),
-                os: None,
-                cpu: None,
-            };
-            stored_packages.insert(key, (resolved_pkg, cached_pkg.store_path.clone()));
-            direct_names.insert(cached_pkg.name.clone());
-        }
-
         if debug {
             pacm_logger::debug(
-                "Skipping dependency verification for cached packages in fast path",
+                &format!(
+                    "All {} packages (including transitive deps) found in cache",
+                    cached_packages.len()
+                ),
                 debug,
             );
         }
 
+        let stored_packages = self.build_stored_map(&cached_packages, &all_resolved);
+
         self.link_all_to_project(path, &stored_packages, debug)?;
 
-        // Run postinstall scripts in project node_modules for the fast-cached packages
         super::utils::InstallUtils::run_postinstall_in_project(path, &stored_packages, debug)?;
+
+        let direct_names: Vec<String> = packages_to_install
+            .iter()
+            .map(|(name, _)| name.clone())
+            .collect();
 
         if !no_save {
             self.update_package_json_batch(
@@ -478,7 +702,11 @@ impl SingleInstaller {
             )?;
         }
 
-        self.update_lock(path, &stored_packages, &direct_names)?;
+        self.update_lock(
+            path,
+            &stored_packages,
+            &direct_names.iter().cloned().collect(),
+        )?;
 
         let finish_msg = self.build_batch_finish_msg(
             packages_to_install,
@@ -549,7 +777,11 @@ impl SingleInstaller {
             )?;
         }
 
-        self.update_lock(path, &stored_packages, &direct_names)?;
+        self.update_lock(
+            path,
+            &stored_packages,
+            &direct_names.iter().cloned().collect(),
+        )?;
 
         let finish_msg = self.build_batch_finish_msg(
             packages_to_install,
@@ -638,14 +870,6 @@ impl SingleInstaller {
         let lock_path = path.join("pacm.lock");
         self.linker
             .update_lock_direct(&lock_path, stored, direct_names)
-    }
-
-    fn link_store_deps(
-        &self,
-        _stored: &HashMap<String, (ResolvedPackage, PathBuf)>,
-        _debug: bool,
-    ) -> Result<()> {
-        Ok(())
     }
 
     fn run_post_install(
@@ -791,141 +1015,9 @@ impl SingleInstaller {
         lines.join("\n")
     }
 
-    async fn fast_store_check(
-        &self,
-        name: &str,
-        version_range: &str,
-        debug: bool,
-    ) -> Result<Option<CachedPackage>> {
-        use pacm_registry::fetch_package_info_async;
-        use pacm_resolver::semver::resolve_version;
-        use pacm_store::get_store_path;
-
-        let resolved_version = if version_range.starts_with('^')
-            || version_range.starts_with('~')
-            || version_range.contains('x')
-            || version_range.contains('*')
-        {
-            if debug {
-                pacm_logger::debug(
-                    &format!(
-                        "Complex version range '{}' - skipping fast path",
-                        version_range
-                    ),
-                    debug,
-                );
-            }
-            return Ok(None);
-        } else if version_range == "latest"
-            || !version_range.chars().next().unwrap_or('0').is_ascii_digit()
-        {
-            if debug {
-                pacm_logger::debug(
-                    &format!("Resolving version tag '{}' for {}", version_range, name),
-                    debug,
-                );
-            }
-
-            let client = self.resolver.get_client();
-            match fetch_package_info_async(client, name).await {
-                Ok(pkg_info) => {
-                    match resolve_version(&pkg_info.versions, version_range, &pkg_info.dist_tags) {
-                        Ok(version) => {
-                            if debug {
-                                pacm_logger::debug(
-                                    &format!("Resolved '{}' to version {}", version_range, version),
-                                    debug,
-                                );
-                            }
-                            version
-                        }
-                        Err(e) => {
-                            if debug {
-                                pacm_logger::debug(
-                                    &format!(
-                                        "Failed to resolve version '{}': {}",
-                                        version_range, e
-                                    ),
-                                    debug,
-                                );
-                            }
-                            return Ok(None);
-                        }
-                    }
-                }
-                Err(e) => {
-                    if debug {
-                        pacm_logger::debug(
-                            &format!("Failed to fetch package info for {}: {}", name, e),
-                            debug,
-                        );
-                    }
-                    return Ok(None);
-                }
-            }
-        } else {
-            version_range.to_string()
-        };
-
-        let store_base = get_store_path();
-        let npm_dir = store_base.join("npm");
-
-        if !npm_dir.exists() {
-            return Ok(None);
-        }
-
-        let safe_package_name = if name.starts_with('@') {
-            name.replace('@', "_at_").replace('/', "_slash_")
-        } else {
-            name.to_string()
-        };
-
-        let package_dir = npm_dir.join(&safe_package_name);
-
-        if debug {
-            pacm_logger::debug(
-                &format!(
-                    "Fast checking store for package: {} version: {}",
-                    safe_package_name, resolved_version
-                ),
-                debug,
-            );
-        }
-
-        if package_dir.exists() {
-            let version_dir = package_dir.join(&resolved_version);
-            let package_path = version_dir.join("package");
-
-            if package_path.exists() {
-                if debug {
-                    pacm_logger::debug(
-                        &format!("Fast store hit: {}/{}", safe_package_name, resolved_version),
-                        debug,
-                    );
-                }
-
-                return Ok(Some(CachedPackage {
-                    name: name.to_string(),
-                    version: resolved_version.clone(),
-                    resolved: format!(
-                        "https://registry.npmjs.org/{}/-/{}-{}.tgz",
-                        name,
-                        name.split('/').last().unwrap_or(name),
-                        resolved_version
-                    ),
-                    integrity: String::new(), // Will be filled if needed
-                    store_path: version_dir,
-                }));
-            }
-        }
-
-        Ok(None)
-    }
-
-    async fn fast_link_only(
+    async fn install_full_path(
         &self,
         project_path: &PathBuf,
-        cached_package: &CachedPackage,
         name: &str,
         version_range: &str,
         dep_type: DependencyType,
@@ -934,33 +1026,99 @@ impl SingleInstaller {
         debug: bool,
     ) -> Result<()> {
         if debug {
-            pacm_logger::debug("Using fast link-only path - no downloads needed", debug);
+            pacm_logger::debug("Package not in store - using full resolution path", debug);
+        } else {
+            pacm_logger::status(&format!("Analyzing package requirements for {}...", name));
         }
 
-        let mut stored_packages = HashMap::new();
-        let key = format!("{}@{}", cached_package.name, cached_package.version);
-        let resolved_pkg = ResolvedPackage {
-            name: cached_package.name.clone(),
-            version: cached_package.version.clone(),
-            resolved: cached_package.resolved.clone(),
-            integrity: cached_package.integrity.clone(),
-            dependencies: HashMap::new(), // Single package - no dependencies needed
-            optional_dependencies: HashMap::new(),
-            os: None,
-            cpu: None,
-        };
-        stored_packages.insert(key, (resolved_pkg, cached_package.store_path.clone()));
+        let deps = vec![(name.to_string(), version_range.to_string())];
+        self.cache.build_index(debug).await?;
 
-        let mut direct_names = HashSet::new();
-        direct_names.insert(name.to_string());
+        let (cached_packages, packages_to_download, direct_names, all_resolved_packages) = {
+            let (direct_names, resolved_map) = self
+                .resolver
+                .resolve_all_parallel(&deps, false, debug)
+                .await?;
+
+            let (cached, to_download) = self
+                .resolver
+                .separate_cached_fast(&resolved_map, &self.cache, debug)
+                .await?;
+
+            (cached, to_download, direct_names, resolved_map)
+        };
+
+        let compatible_packages_to_download: Vec<ResolvedPackage> = packages_to_download
+            .iter()
+            .filter(|pkg| {
+                if is_platform_compatible(&pkg.os, &pkg.cpu) {
+                    true
+                } else {
+                    pacm_logger::warn(&format!(
+                        "Package {} (version {}) is not compatible with current platform, skipping",
+                        pkg.name, pkg.version
+                    ));
+                    false
+                }
+            })
+            .cloned()
+            .collect();
+
+        let mut stored_packages = self.build_stored_map(&cached_packages, &all_resolved_packages);
+
+        if compatible_packages_to_download.is_empty() && !cached_packages.is_empty() {
+            if debug {
+                pacm_logger::debug(
+                    &format!("All {} packages found in cache", cached_packages.len()),
+                    debug,
+                );
+            }
+
+            self.link_all_to_project(project_path, &stored_packages, debug)?;
+
+            super::utils::InstallUtils::run_postinstall_in_project(
+                project_path,
+                &stored_packages,
+                debug,
+            )?;
+
+            if !no_save {
+                self.update_package_json(
+                    project_path,
+                    name,
+                    version_range,
+                    dep_type,
+                    save_exact,
+                    &stored_packages,
+                )?;
+            }
+
+            self.update_lock(project_path, &stored_packages, &direct_names)?;
+
+            let msg = if cached_packages.len() == 1 {
+                format!("{} linked from cache", name)
+            } else {
+                format!(
+                    "{} and {} dependencies linked from cache",
+                    name,
+                    cached_packages.len() - 1
+                )
+            };
+            pacm_logger::finish(&msg);
+            return Ok(());
+        }
+
+        if !compatible_packages_to_download.is_empty() {
+            let downloaded = self
+                .downloader
+                .download_parallel(&compatible_packages_to_download, debug)
+                .await?;
+            stored_packages.extend(downloaded);
+
+            self.run_post_install(&stored_packages, &compatible_packages_to_download, debug)?;
+        }
 
         self.link_all_to_project(project_path, &stored_packages, debug)?;
-
-        super::utils::InstallUtils::run_postinstall_in_project(
-            project_path,
-            &stored_packages,
-            debug,
-        )?;
 
         if !no_save {
             self.update_package_json(
@@ -975,7 +1133,8 @@ impl SingleInstaller {
 
         self.update_lock(project_path, &stored_packages, &direct_names)?;
 
-        pacm_logger::finish(&format!("{} linked instantly from store", name));
+        let msg = self.build_finish_msg(name, &cached_packages, &compatible_packages_to_download);
+        pacm_logger::finish(&msg);
         Ok(())
     }
 }

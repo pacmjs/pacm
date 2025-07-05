@@ -81,8 +81,10 @@ fn handle_known_command(command: &Commands) -> Result<()> {
         Commands::Remove {
             packages,
             dev,
+            direct_only,
+            dry_run,
             debug,
-        } => RemoveHandler::handle_remove_packages(packages, *dev, *debug),
+        } => RemoveHandler::handle_remove_packages(packages, *dev, *direct_only, *dry_run, *debug),
         Commands::Update { packages, debug } => {
             UpdateHandler::handle_update_packages(packages, *debug)
         }

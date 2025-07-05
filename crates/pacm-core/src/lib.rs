@@ -135,6 +135,43 @@ pub fn remove_multiple_deps(
         .map_err(|e| anyhow::anyhow!(e))
 }
 
+pub fn remove_multiple_deps_direct_only(
+    project_dir: &str,
+    names: &[String],
+    dev_only: bool,
+    debug: bool,
+) -> anyhow::Result<()> {
+    let manager = RemoveManager;
+    manager
+        .remove_multiple_deps_direct_only(project_dir, names, dev_only, debug)
+        .map_err(|e| anyhow::anyhow!(e))
+}
+
+pub fn remove_with_transitive_deps(
+    project_dir: &str,
+    names: &[String],
+    dev_only: bool,
+    debug: bool,
+) -> anyhow::Result<()> {
+    let manager = RemoveManager;
+    manager
+        .remove_with_transitive_deps(project_dir, names, dev_only, debug)
+        .map_err(|e| anyhow::anyhow!(e))
+}
+
+pub fn remove_multiple_deps_dry_run(
+    project_dir: &str,
+    names: &[String],
+    dev_only: bool,
+    direct_only: bool,
+    debug: bool,
+) -> anyhow::Result<()> {
+    let manager = RemoveManager;
+    manager
+        .remove_multiple_deps_dry_run(project_dir, names, dev_only, direct_only, debug)
+        .map_err(|e| anyhow::anyhow!(e))
+}
+
 pub fn update_deps(project_dir: &str, packages: &[String], debug: bool) -> anyhow::Result<()> {
     let manager = UpdateManager::new();
     manager

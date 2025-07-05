@@ -86,6 +86,14 @@ impl PackageLinker {
         LockfileManager::update_all(lock_path, stored_packages)
     }
 
+    pub fn update_lock_from_lockfile_install(
+        &self,
+        lock_path: &Path,
+        stored_packages: &HashMap<String, (ResolvedPackage, PathBuf)>,
+    ) -> Result<()> {
+        LockfileManager::update_from_lockfile_install(lock_path, stored_packages)
+    }
+
     pub fn update_pkg_json(
         &self,
         project_dir: &Path,

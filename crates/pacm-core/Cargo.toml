@@ -22,3 +22,4 @@ pacm-project = { path = "../pacm-project" }
 pacm-logger = { path = "../pacm-logger" }
 pacm-error = { path = "../pacm-error" }
 pacm-constants = { path = "../pacm-constants" }
+pacm-symcap = { path = "../pacm-symcap" }

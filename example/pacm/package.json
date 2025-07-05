@@ -1,7 +1,6 @@
 {
-  "name": "pacm",
-  "version": "1.0.0",
   "dependencies": {
-    "esbuild": "^0.25.5"
-  }
+    "express": "^5.1.0"
+  },
+  "type": "module"
 }

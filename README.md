@@ -46,6 +46,7 @@ PACM is built as a modular system with the following crates:
 - **`pacm-runtime`**: Runtime environment management
 - **`pacm-store`**: Package storage and caching
 - **`pacm-utils`**: Shared utilities and helpers
+- **`pacm-symcap`**: System capabilities and optimizations
 
 ## 🚀 Installation
 

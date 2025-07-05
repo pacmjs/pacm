@@ -13,6 +13,7 @@ pub enum PackageManagerError {
     NetworkError(String),
     InvalidPackageSpec(String),
     DependencyConflict(String, String),
+    NoCompatibleVersions(String),
     IoError(String),
 }
 
@@ -51,6 +52,9 @@ impl fmt::Display for PackageManagerError {
             }
             Self::DependencyConflict(name, details) => {
                 write!(f, "Dependency conflict for '{name}': {details}")
+            }
+            Self::NoCompatibleVersions(name) => {
+                write!(f, "No compatible versions found for package '{name}'")
             }
             Self::IoError(msg) => {
                 write!(f, "IO error: {msg}")

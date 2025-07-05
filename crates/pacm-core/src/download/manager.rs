@@ -7,6 +7,7 @@ use tokio::sync::{Mutex, Semaphore};
 use pacm_error::{PackageManagerError, Result};
 use pacm_logger;
 use pacm_resolver::ResolvedPackage;
+use pacm_symcap::SystemCapabilities;
 
 use super::cache::CacheIndex;
 use super::client::DownloadClient;
@@ -19,10 +20,12 @@ pub struct PackageDownloader {
 
 impl PackageDownloader {
     pub fn new() -> Self {
+        let system_caps = SystemCapabilities::get();
+
         Self {
             cache: CacheIndex::new(),
             client: DownloadClient::new(),
-            download_semaphore: Arc::new(Semaphore::new(40)),
+            download_semaphore: Arc::new(Semaphore::new(system_caps.optimal_parallel_downloads)),
         }
     }
 
@@ -35,13 +38,17 @@ impl PackageDownloader {
             return Ok(HashMap::new());
         }
 
+        let system_caps = SystemCapabilities::get();
         let start_time = std::time::Instant::now();
         self.cache.build(debug).await?;
 
-        pacm_logger::status(&format!(
-            "Downloading {} packages with parallel processing...",
-            packages.len()
-        ));
+        if !debug {
+            pacm_logger::status(&format!(
+                "Downloading {} packages using {} parallel connections...",
+                packages.len(),
+                system_caps.optimal_parallel_downloads
+            ));
+        }
 
         let stored_packages = Arc::new(Mutex::new(HashMap::new()));
         let processed = Arc::new(Mutex::new(std::collections::HashSet::new()));
@@ -67,85 +74,113 @@ impl PackageDownloader {
                 let key = format!("{}@{}", pkg.name, pkg.version);
                 stored.insert(key, (pkg, store_path));
             }
-            pacm_logger::status(&format!(
-                "{} packages linked from cache instantly",
-                stored.len()
-            ));
+            if !debug {
+                pacm_logger::debug(
+                    &format!("{} packages linked from cache", stored.len()),
+                    false,
+                );
+            }
         }
 
         if !packages_to_download.is_empty() {
             let download_start = std::time::Instant::now();
-            pacm_logger::status(&format!(
-                "Downloading {} packages...",
-                packages_to_download.len()
-            ));
 
-            let download_tasks: Vec<_> = packages_to_download
-                .iter()
-                .map(|pkg| {
-                    let client = &self.client;
-                    let stored_packages = stored_packages.clone();
-                    let processed = processed.clone();
-                    let pkg = pkg.clone();
-                    let semaphore = self.download_semaphore.clone();
+            let batch_size = system_caps.get_network_batch_size(packages_to_download.len());
+            let batches: Vec<_> = packages_to_download.chunks(batch_size).collect();
 
-                    async move {
-                        let _permit = semaphore.acquire().await.unwrap();
+            if debug {
+                pacm_logger::debug(
+                    &format!(
+                        "Downloading {} packages in {} batches of up to {} packages each",
+                        packages_to_download.len(),
+                        batches.len(),
+                        batch_size
+                    ),
+                    debug,
+                );
+            }
 
-                        let key = format!("{}@{}", pkg.name, pkg.version);
+            for (batch_idx, batch) in batches.into_iter().enumerate() {
+                if debug && batch.len() > 1 {
+                    pacm_logger::debug(
+                        &format!(
+                            "Processing download batch {} with {} packages",
+                            batch_idx + 1,
+                            batch.len()
+                        ),
+                        debug,
+                    );
+                }
 
-                        {
-                            let mut proc = processed.lock().await;
-                            if proc.contains(&key) {
-                                return Ok::<(), PackageManagerError>(());
+                let download_tasks: Vec<_> = batch
+                    .iter()
+                    .map(|pkg| {
+                        let client = &self.client;
+                        let stored_packages = stored_packages.clone();
+                        let processed = processed.clone();
+                        let pkg = pkg.clone();
+                        let semaphore = self.download_semaphore.clone();
+
+                        async move {
+                            let _permit = semaphore.acquire().await.unwrap();
+
+                            let key = format!("{}@{}", pkg.name, pkg.version);
+
+                            {
+                                let mut proc = processed.lock().await;
+                                if proc.contains(&key) {
+                                    return Ok::<(), PackageManagerError>(());
+                                }
+                                proc.insert(key.clone());
                             }
-                            proc.insert(key.clone());
-                        }
 
-                        if debug {
-                            pacm_logger::debug(&format!("Downloading: {}", key), debug);
-                        }
+                            match client.download_tarball(&pkg, debug).await {
+                                Ok(tarball_data) => {
+                                    if let Ok(store_path) = pacm_store::store_package(
+                                        &pkg.name,
+                                        &pkg.version,
+                                        &tarball_data,
+                                    ) {
+                                        let mut stored = stored_packages.lock().await;
+                                        stored.insert(key.clone(), (pkg, store_path));
 
-                        match client.download_tarball(&pkg, debug).await {
-                            Ok(tarball_data) => {
-                                if let Ok(store_path) = pacm_store::store_package(
-                                    &pkg.name,
-                                    &pkg.version,
-                                    &tarball_data,
-                                ) {
-                                    let mut stored = stored_packages.lock().await;
-                                    stored.insert(key.clone(), (pkg, store_path));
-
-                                    if debug {
-                                        pacm_logger::debug(&format!("Completed: {}", key), debug);
+                                        if debug {
+                                            pacm_logger::debug(
+                                                &format!("Downloaded: {}", key),
+                                                debug,
+                                            );
+                                        }
+                                    } else {
+                                        pacm_logger::error(&format!(
+                                            "Failed to store package: {}",
+                                            key
+                                        ));
+                                        return Err(PackageManagerError::StorageFailed(
+                                            key.clone(),
+                                            "Failed to store package".to_string(),
+                                        ));
                                     }
-                                } else {
+                                }
+                                Err(e) => {
                                     pacm_logger::error(&format!(
-                                        "Failed to store package: {}",
-                                        key
+                                        "Failed to download {}: {}",
+                                        key, e
                                     ));
-                                    return Err(PackageManagerError::StorageFailed(
-                                        key.clone(),
-                                        "Failed to store package".to_string(),
-                                    ));
+                                    return Err(e);
                                 }
                             }
-                            Err(e) => {
-                                pacm_logger::error(&format!("Failed to download {}: {}", key, e));
-                                return Err(e);
-                            }
+
+                            Ok(())
                         }
+                    })
+                    .collect();
 
-                        Ok(())
+                let download_results = join_all(download_tasks).await;
+
+                for result in download_results {
+                    if let Err(e) = result {
+                        return Err(e);
                     }
-                })
-                .collect();
-
-            let download_results = join_all(download_tasks).await;
-
-            for result in download_results {
-                if let Err(e) = result {
-                    return Err(e);
                 }
             }
 

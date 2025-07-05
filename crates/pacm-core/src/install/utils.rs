@@ -1,3 +1,4 @@
+use rayon::prelude::*;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -195,8 +196,34 @@ impl InstallUtils {
 
         let project_node_modules = project_dir.join("node_modules");
 
-        for (_key, (pkg, _store_path)) in packages {
-            Self::run_single_postinstall_in_project(&pkg.name, &project_node_modules, debug)?;
+        let results: Vec<_> = packages
+            .par_iter()
+            .map(|(_key, (pkg, _store_path))| {
+                Self::run_single_postinstall_in_project(&pkg.name, &project_node_modules, debug)
+            })
+            .collect();
+
+        for result in results {
+            result?;
+        }
+
+        let temp_dir = project_dir.join(".pacm_temp");
+        if temp_dir.exists() {
+            if debug {
+                pacm_logger::debug(
+                    &format!("Cleaning up temporary directory: {}", temp_dir.display()),
+                    debug,
+                );
+            }
+            if let Err(e) = std::fs::remove_dir_all(&temp_dir) {
+                pacm_logger::warn(&format!(
+                    "Failed to clean up temporary directory {}: {}",
+                    temp_dir.display(),
+                    e
+                ));
+            } else if debug {
+                pacm_logger::debug("Successfully cleaned up .pacm_temp directory", debug);
+            }
         }
 
         Ok(())

@@ -8,15 +8,20 @@ use super::types::CachedPackage;
 use pacm_error::Result;
 use pacm_logger;
 use pacm_store::get_store_path;
+use pacm_symcap::SystemCapabilities;
 
+#[derive(Clone)]
 pub struct CacheManager {
     index: Arc<Mutex<HashMap<String, CachedPackage>>>,
 }
 
 impl CacheManager {
     pub fn new() -> Self {
+        let system_caps = SystemCapabilities::get();
+        let initial_capacity = (system_caps.available_memory_gb * 500.0) as usize;
+
         Self {
-            index: Arc::new(Mutex::new(HashMap::new())),
+            index: Arc::new(Mutex::new(HashMap::with_capacity(initial_capacity))),
         }
     }
 
@@ -34,7 +39,12 @@ impl CacheManager {
             return Ok(());
         }
 
-        pacm_logger::debug("Building cache index...", debug);
+        if !debug {
+            pacm_logger::status("Building package cache index...");
+        } else {
+            pacm_logger::debug("Building cache index...", debug);
+        }
+
         let start = std::time::Instant::now();
 
         match std::fs::read_dir(&npm_dir) {
@@ -45,63 +55,71 @@ impl CacheManager {
                     return Ok(());
                 }
 
+                let system_caps = SystemCapabilities::get();
+                let chunk_size = (package_entries.len() / system_caps.logical_cores)
+                    .max(10)
+                    .min(50);
+
                 let cached_packages: Vec<_> = package_entries
-                    .par_iter()
-                    .filter_map(|package_entry| {
-                        if package_entry.file_type().ok()?.is_dir() {
-                            let package_name = Self::unsanitize_package_name(
-                                &package_entry.file_name().to_string_lossy(),
-                            );
+                    .par_chunks(chunk_size)
+                    .flat_map(|chunk| {
+                        chunk.par_iter().filter_map(|package_entry| {
+                            if package_entry.file_type().ok()?.is_dir() {
+                                let package_name = Self::unsanitize_package_name(
+                                    &package_entry.file_name().to_string_lossy(),
+                                );
 
-                            if let Ok(version_entries) = std::fs::read_dir(package_entry.path()) {
-                                let versions: Vec<_> = version_entries
-                                    .flatten()
-                                    .filter_map(|version_entry| {
-                                        if version_entry.file_type().ok()?.is_dir() {
-                                            let version = version_entry
-                                                .file_name()
-                                                .to_string_lossy()
-                                                .to_string();
-                                            let store_path = version_entry.path();
-                                            let package_dir = store_path.join("package");
+                                if let Ok(version_entries) = std::fs::read_dir(package_entry.path()) {
+                                    let versions: Vec<_> = version_entries
+                                        .flatten()
+                                        .filter_map(|version_entry| {
+                                            if version_entry.file_type().ok()?.is_dir() {
+                                                let version = version_entry
+                                                    .file_name()
+                                                    .to_string_lossy()
+                                                    .to_string();
+                                                let store_path = version_entry.path();
+                                                let package_dir = store_path.join("package");
 
-                                            if package_dir.exists() {
-                                                let cached_pkg = CachedPackage {
-                                                    name: package_name.clone(),
-                                                    version: version.clone(),
-                                                    resolved: format!(
-                                                        "https://registry.npmjs.org/{}/-/{}-{}.tgz",
-                                                        package_name, package_name, version
-                                                    ),
-                                                    integrity: String::new(), // We no longer store hash in path
-                                                    store_path,
-                                                };
+                                                if package_dir.exists() {
+                                                    let cached_pkg = CachedPackage {
+                                                        name: package_name.clone(),
+                                                        version: version.clone(),
+                                                        resolved: format!(
+                                                            "https://registry.npmjs.org/{}/-/{}-{}.tgz",
+                                                            package_name, package_name, version
+                                                        ),
+                                                        integrity: String::new(), // We no longer store hash in path
+                                                        store_path,
+                                                    };
 
-                                                Some((
-                                                    format!("{}@{}", package_name, version),
-                                                    cached_pkg,
-                                                ))
+                                                    Some((
+                                                        format!("{}@{}", package_name, version),
+                                                        cached_pkg,
+                                                    ))
+                                                } else {
+                                                    None
+                                                }
                                             } else {
                                                 None
                                             }
-                                        } else {
-                                            None
-                                        }
-                                    })
-                                    .collect();
+                                        })
+                                        .collect();
 
-                                Some(versions)
+                                    Some(versions)
+                                } else {
+                                    None
+                                }
                             } else {
                                 None
                             }
-                        } else {
-                            None
-                        }
+                        })
                     })
                     .flatten()
                     .collect();
 
                 let mut cache = self.index.lock().await;
+                cache.reserve(cached_packages.len());
                 for (key, cached_pkg) in cached_packages {
                     cache.insert(key, cached_pkg);
                 }
@@ -111,14 +129,26 @@ impl CacheManager {
 
         let cache = self.index.lock().await;
         let duration = start.elapsed();
-        pacm_logger::debug(
-            &format!(
-                "Cache index built with {} entries in {:?}",
-                cache.len(),
-                duration
-            ),
-            debug,
-        );
+
+        if !debug {
+            pacm_logger::debug(
+                &format!(
+                    "Cache index built with {} packages in {:?}",
+                    cache.len(),
+                    duration
+                ),
+                false,
+            );
+        } else {
+            pacm_logger::debug(
+                &format!(
+                    "Cache index built with {} entries in {:?}",
+                    cache.len(),
+                    duration
+                ),
+                debug,
+            );
+        }
 
         Ok(())
     }
